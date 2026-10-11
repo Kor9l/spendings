@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head><title th:text="#{setup.title} + ' · ' + #{app.name}">Первый запуск</title></head>
+<body>
+<main class="container auth-container py-5">
+  <h1 class="h3 mb-2" th:text="#{setup.title}">Первый запуск</h1>
+  <p class="text-body-secondary mb-4" th:text="#{setup.lead}">Создайте учётную запись владельца.</p>
+
+  <form th:action="@{/setup}" th:object="${form}" method="post" hx-boost="false" class="vstack gap-3" novalidate>
+    <div>
+      <label class="form-label" for="username" th:text="#{setup.username}">Логин</label>
+      <input class="form-control form-control-lg" th:field="*{username}" th:errorclass="is-invalid" autocomplete="username" required autofocus>
+      <div class="invalid-feedback" th:errors="*{username}"></div>
+      <div class="form-text" th:text="#{setup.usernameHint}"></div>
+    </div>
+    <div>
+      <label class="form-label" for="password" th:text="#{setup.password}">Пароль</label>
+      <input class="form-control form-control-lg" type="password" th:field="*{password}" th:errorclass="is-invalid" autocomplete="new-password" required>
+      <div class="invalid-feedback" th:errors="*{password}"></div>
+      <div class="form-text" th:text="#{setup.passwordHint}"></div>
+    </div>
+    <div>
+      <label class="form-label" for="passwordConfirmation" th:text="#{setup.passwordConfirmation}">Повторите пароль</label>
+      <input class="form-control form-control-lg" type="password" th:field="*{passwordConfirmation}" th:errorclass="is-invalid" autocomplete="new-password" required>
+      <div class="invalid-feedback" th:errors="*{passwordConfirmation}"></div>
+    </div>
+    <button class="btn btn-primary btn-lg" type="submit" th:text="#{setup.submit}">Создать учётную запись</button>
+  </form>
+</main>
+</body>
+</html>

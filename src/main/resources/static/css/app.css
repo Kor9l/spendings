@@ -1,0 +1,13 @@
+body {
+  min-height: 100vh;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.auth-container {
+  max-width: 26rem;
+}
+
+.font-monospace,
+.display-6 {
+  font-variant-numeric: tabular-nums;
+}

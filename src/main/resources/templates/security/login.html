@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head><title th:text="#{login.title} + ' · ' + #{app.name}">Вход</title></head>
+<body>
+<main class="container auth-container py-5">
+  <h1 class="h3 mb-4" th:text="#{app.name}">Spendings</h1>
+
+  <div class="alert alert-danger" th:if="${param.error}" th:text="#{login.error}">Неверный логин или пароль.</div>
+  <div class="alert alert-info" th:if="${param.logout}" th:text="#{login.logout}">Вы вышли.</div>
+  <div class="alert alert-success" th:if="${param.created}" th:text="#{login.created}">Учётная запись создана.</div>
+
+  <form th:action="@{/login}" method="post" hx-boost="false" class="vstack gap-3">
+    <div>
+      <label class="form-label" for="username" th:text="#{login.username}">Логин</label>
+      <input class="form-control form-control-lg" id="username" name="username" autocomplete="username" required autofocus>
+    </div>
+    <div>
+      <label class="form-label" for="password" th:text="#{login.password}">Пароль</label>
+      <input class="form-control form-control-lg" id="password" name="password" type="password" autocomplete="current-password" required>
+    </div>
+    <div class="form-check">
+      <input class="form-check-input" id="remember-me" name="remember-me" type="checkbox" checked>
+      <label class="form-check-label" for="remember-me" th:text="#{login.rememberMe}">Запомнить меня</label>
+    </div>
+    <button class="btn btn-primary btn-lg" type="submit" th:text="#{login.submit}">Войти</button>
+  </form>
+</main>
+</body>
+</html>

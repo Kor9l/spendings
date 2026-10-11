@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head><title th:text="#{error.notFound.title} + ' · ' + #{app.name}">Страница не найдена</title></head>
+<body>
+<main class="container auth-container py-5">
+  <h1 class="h3" th:text="#{error.notFound.title}">Страница не найдена</h1>
+  <p class="text-body-secondary" th:text="#{error.notFound.text}">Проверьте адрес.</p>
+  <a class="btn btn-primary" th:href="@{/}" th:text="#{error.back}">На дашборд</a>
+</main>
+</body>
+</html>

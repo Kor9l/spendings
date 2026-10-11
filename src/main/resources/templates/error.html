@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head><title th:text="#{error.title} + ' · ' + #{app.name}">Ошибка</title></head>
+<body>
+<main class="container auth-container py-5">
+  <p class="font-monospace text-body-secondary mb-1" th:text="${status}">500</p>
+  <h1 class="h3" th:text="#{error.generic.title}">Что-то пошло не так</h1>
+  <p class="text-body-secondary" th:text="#{error.generic.text}">Попробуйте ещё раз.</p>
+  <a class="btn btn-primary" th:href="@{/}" th:text="#{error.back}">На дашборд</a>
+</main>
+</body>
+</html>

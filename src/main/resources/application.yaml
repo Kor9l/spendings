@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: spendings
+  threads:
+    virtual:
+      enabled: true
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate          # схема меняется только миграциями Flyway
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  web:
+    locale: ru
+    locale-resolver: fixed
+  docker:
+    compose:
+      lifecycle-management: start-only   # при остановке приложения база продолжает работать
+
+server:
+  servlet:
+    session:
+      cookie:
+        same-site: lax
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+spendings:
+  security:
+    # Задайте в продакшене (openssl rand -hex 32), иначе после перезапуска remember-me сбрасывается
+    remember-me-key: ${SPENDINGS_REMEMBER_ME_KEY:}
