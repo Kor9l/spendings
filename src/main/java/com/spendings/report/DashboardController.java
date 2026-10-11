@@ -6,6 +6,8 @@ import com.spendings.fx.BaseCurrency;
 import com.spendings.goal.Goals;
 import com.spendings.operation.Feed;
 import com.spendings.operation.OperationFeed;
+import com.spendings.planning.Budgets;
+import com.spendings.planning.Planner;
 import com.spendings.report.ReportQueries.Totals;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -23,6 +25,7 @@ class DashboardController {
   private static final int RECENT_DAYS = 3;
   private static final int TOP_CATEGORIES = 5;
   private static final int TOP_GOALS = 3;
+  private static final int UPCOMING_DAYS = 7;
 
   private final BaseCurrency baseCurrency;
   private final Accounts accounts;
@@ -30,6 +33,8 @@ class DashboardController {
   private final Reports reports;
   private final JdbcClient jdbc;
   private final Goals goals;
+  private final Planner planner;
+  private final Budgets budgets;
 
   DashboardController(
       BaseCurrency baseCurrency,
@@ -37,7 +42,11 @@ class DashboardController {
       OperationFeed operations,
       Reports reports,
       JdbcClient jdbc,
-      Goals goals) {
+      Goals goals,
+      Planner planner,
+      Budgets budgets) {
+    this.planner = planner;
+    this.budgets = budgets;
     this.goals = goals;
     this.baseCurrency = baseCurrency;
     this.accounts = accounts;
@@ -77,6 +86,9 @@ class DashboardController {
         "balances", accounts.balances().stream().filter(b -> !b.account().archived()).toList());
 
     model.addAttribute("goals", goals.active().stream().limit(TOP_GOALS).toList());
+    model.addAttribute("upcoming", planner.upcoming(UPCOMING_DAYS));
+    model.addAttribute("budgetWarnings", budgets.warnings());
+    model.addAttribute("monthForecast", planner.forecast(budgets.current().to()));
 
     Feed recent = operations.page(Feed.Filter.none(), null, RECENT_DAYS);
     model.addAttribute("feed", new Feed(recent.days(), null));

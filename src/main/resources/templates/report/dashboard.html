@@ -119,6 +119,35 @@
           </div>
         </section>
 
+        <section class="card" th:unless="${upcoming.empty and budgetWarnings.empty}">
+          <div class="card-body vstack gap-3">
+            <div th:unless="${upcoming.empty}">
+              <div class="d-flex justify-content-between align-items-baseline mb-1">
+                <h2 class="h6 text-body-secondary text-uppercase small mb-0" th:text="#{dashboard.upcoming}">Ожидается на неделе</h2>
+                <a class="small" th:href="@{/planning}" th:text="#{dashboard.allPlanning}">Весь план</a>
+              </div>
+              <ul class="list-unstyled mb-0 vstack gap-1 small">
+                <li class="d-flex justify-content-between gap-2" th:each="d : ${upcoming}">
+                  <span class="text-truncate" th:classappend="${d.overdue} ? 'text-warning'"
+                        th:text="${#temporals.format(d.date, 'dd.MM')} + ' · ' + ${d.icon} + ' ' + ${d.name}">20.10 · 🏠 Коммуналка</span>
+                  <span class="font-monospace text-nowrap" th:text="${@money.signed(d.signedAmount(), d.currency)}">−180,00 BYN</span>
+                </li>
+              </ul>
+              <p class="small text-body-secondary mb-0 mt-2"
+                 th:text="#{planning.forecast(${#temporals.format(monthForecast.until, 'd MMMM')})} + ': ' + ${@money.format(monthForecast.end, monthForecast.currency)}">Остаток к 4 ноября: 2 150,00 BYN</p>
+            </div>
+            <div th:unless="${budgetWarnings.empty}">
+              <h2 class="h6 text-body-secondary text-uppercase small mb-1" th:text="#{dashboard.budgets}">Бюджеты на исходе</h2>
+              <a class="d-block text-body text-decoration-none small mb-1" th:each="r : ${budgetWarnings}" th:href="@{/budgets}">
+                <span class="d-flex justify-content-between gap-2">
+                  <span class="text-truncate" th:text="${r.category.icon} + ' ' + ${r.category.displayName()}">🍽️ Еда</span>
+                  <span class="font-monospace" th:classappend="${'text-' + r.level()}" th:text="${@money.percent(r.percent)} + '%'">92%</span>
+                </span>
+              </a>
+            </div>
+          </div>
+        </section>
+
         <section class="card" th:hx-get="@{/system/status}" hx-trigger="load" hx-swap="outerHTML">
           <div class="card-body small text-body-secondary" th:text="#{status.loading}">Проверяю…</div>
         </section>

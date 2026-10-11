@@ -189,3 +189,39 @@ body:has(.op-form) .app-fab {
 .goal-card:hover {
   border-color: var(--bs-primary);
 }
+
+/* Календарь платежей */
+.calendar {
+  table-layout: fixed;
+  min-width: 36rem;
+}
+
+.calendar th {
+  font-size: 0.75rem;
+  text-align: center;
+  color: var(--bs-secondary-color);
+}
+
+.calendar td {
+  height: 5.5rem;
+  vertical-align: top;
+  padding: 0.25rem;
+}
+
+.calendar-today {
+  background: color-mix(in srgb, var(--bs-primary) 10%, transparent);
+}
+
+.calendar-entry {
+  font-size: 0.7rem;
+  line-height: 1.3;
+}
+
+.calendar-entry.is-posted {
+  opacity: 0.55;
+}
+
+.calendar-entry.is-skipped {
+  text-decoration: line-through;
+  opacity: 0.55;
+}

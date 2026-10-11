@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head><title th:text="#{planning.title} + ' · ' + #{app.name}">План</title></head>
+<body>
+<main class="container py-3">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h1 class="h4 mb-0" th:text="#{planning.title}">План</h1>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-secondary btn-sm" th:href="@{/budgets}" th:text="#{nav.budgets}">Бюджеты</a>
+      <a class="btn btn-primary btn-sm" th:href="@{/planning/rules/new}" th:text="'+ ' + #{planning.newRule}">+ Регулярная операция</a>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-12 col-lg-7 vstack gap-4">
+      <!-- ожидается -->
+      <section>
+        <h2 class="h6 text-body-secondary text-uppercase small" th:text="#{planning.upcoming}">Ожидается</h2>
+        <p class="text-body-secondary" th:if="${upcoming.empty}" th:text="#{planning.upcomingEmpty}">Ничего не ожидается.</p>
+        <ul class="list-group" th:unless="${upcoming.empty}">
+          <li class="list-group-item" th:each="d : ${upcoming}" x-data="{ open: false }"
+              th:classappend="${d.overdue} ? 'list-group-item-warning'">
+            <div class="d-flex align-items-center gap-3">
+              <span class="cat-icon flex-shrink-0" th:style="'--cat-color:' + ${d.color}" th:text="${d.icon}">🏠</span>
+              <span class="flex-grow-1 min-w-0">
+                <span class="d-block text-truncate" th:text="${d.name}">Коммуналка</span>
+                <span class="small text-body-secondary"
+                      th:text="(${d.overdue} ? #{planning.overdue} + ' · ' : '') + ${#temporals.format(d.date, 'd MMMM, EEE')} + ' · ' + ${d.accountName}">20 октября · Карта</span>
+              </span>
+              <span class="font-monospace text-nowrap" th:classappend="${d.type.name() == 'INCOME'} ? 'amount-positive'"
+                    th:text="${@money.signed(d.signedAmount(), d.currency)}">−180,00 BYN</span>
+              <button type="button" class="btn btn-sm btn-outline-primary" x-on:click="open = !open" th:text="#{planning.post}">Провести</button>
+            </div>
+            <form class="row g-2 align-items-end mt-2" method="post" th:action="@{/planning/post}" x-show="open" x-cloak>
+              <input type="hidden" name="ruleId" th:value="${d.ruleId}">
+              <input type="hidden" name="dueOn" th:value="${d.date}">
+              <div class="col-5 col-sm-4">
+                <label class="form-label small mb-1" th:for="${'amount-' + d.ruleId + d.date}" th:text="#{planning.actualAmount}">Сумма</label>
+                <input class="form-control form-control-sm" th:id="${'amount-' + d.ruleId + d.date}" name="amount" inputmode="decimal" required
+                       th:value="${@money.input(d.amount)}">
+              </div>
+              <div class="col-7 col-sm-4">
+                <label class="form-label small mb-1" th:for="${'date-' + d.ruleId + d.date}" th:text="#{operation.date}">Дата</label>
+                <input class="form-control form-control-sm" type="date" th:id="${'date-' + d.ruleId + d.date}" name="date" th:value="${d.date.isAfter(today) ? today : d.date}">
+              </div>
+              <div class="col-12 col-sm-4 d-flex gap-2">
+                <button class="btn btn-sm btn-primary flex-grow-1" type="submit" th:text="#{planning.post}">Провести</button>
+                <button class="btn btn-sm btn-outline-secondary" type="submit" th:formaction="@{/planning/skip}" formnovalidate th:text="#{planning.skip}">Пропустить</button>
+              </div>
+            </form>
+          </li>
+        </ul>
+      </section>
+
+      <!-- календарь -->
+      <section>
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <a class="btn btn-sm btn-outline-secondary" th:href="@{/planning(month=${month.minusMonths(1)})}" aria-label="Предыдущий месяц">‹</a>
+          <h2 class="h6 mb-0 text-capitalize" th:text="${#temporals.format(month.atDay(1), 'LLLL yyyy')}">октябрь 2026</h2>
+          <a class="btn btn-sm btn-outline-secondary" th:href="@{/planning(month=${month.plusMonths(1)})}" aria-label="Следующий месяц">›</a>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-bordered table-sm calendar mb-0">
+            <thead>
+            <tr><th th:each="w : ${ {'Пн','Вт','Ср','Чт','Пт','Сб','Вс'} }" th:text="${w}">Пн</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="week : ${weeks}">
+              <td th:each="day : ${week}" th:classappend="${day != null and day == today} ? 'calendar-today'">
+                <th:block th:if="${day != null}">
+                  <div class="small text-body-secondary" th:text="${day.dayOfMonth}">1</div>
+                  <div class="calendar-entry text-truncate" th:each="o : ${calendar.get(day)}"
+                       th:classappend="${o.posted()} ? 'is-posted' : (${o.skipped()} ? 'is-skipped' : '')"
+                       th:title="${o.due().name()} + ' · ' + ${@money.signed(o.due().signedAmount(), o.due().currency())}"
+                       th:text="${o.due().icon()} + ' ' + ${o.due().name()}">🏠 Коммуналка</div>
+                </th:block>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="small text-body-secondary mt-1" th:text="#{planning.calendarLegend}">зачёркнуто — пропущено, приглушено — проведено</p>
+      </section>
+    </div>
+
+    <div class="col-12 col-lg-5 vstack gap-4">
+      <!-- прогноз -->
+      <section class="card">
+        <div class="card-body">
+          <h2 class="h6 text-body-secondary text-uppercase small" th:text="#{planning.forecast(${#temporals.format(forecast.until, 'd MMMM')})}">Остаток к 4 ноября</h2>
+          <p class="fs-4 font-monospace mb-2" th:classappend="${forecast.end.signum() < 0} ? 'amount-negative'"
+             th:text="${@money.format(forecast.end, forecast.currency)}">2 150,00 BYN</p>
+          <dl class="row small mb-0">
+            <dt class="col-7 fw-normal text-body-secondary" th:text="#{planning.forecast.now}">Сейчас на счетах</dt>
+            <dd class="col-5 text-end font-monospace" th:text="${@money.format(forecast.now, forecast.currency)}">1 000,00</dd>
+            <dt class="col-7 fw-normal text-body-secondary" th:text="#{planning.forecast.income}">Ожидается доходов</dt>
+            <dd class="col-5 text-end font-monospace amount-positive" th:text="${@money.signed(forecast.plannedIncome, forecast.currency)}">+1 900,00</dd>
+            <dt class="col-7 fw-normal text-body-secondary" th:text="#{planning.forecast.expenses}">Ожидается расходов</dt>
+            <dd class="col-5 text-end font-monospace mb-0" th:text="${@money.signed(forecast.plannedExpenses.negate(), forecast.currency)}">−750,00</dd>
+          </dl>
+          <p class="small text-warning mb-0 mt-2" th:if="${forecast.missingRates}" th:text="#{dashboard.missingRates}">Нет курса.</p>
+        </div>
+      </section>
+
+      <!-- правила -->
+      <section>
+        <h2 class="h6 text-body-secondary text-uppercase small" th:text="#{planning.rules}">Регулярные операции</h2>
+        <p class="text-body-secondary small" th:if="${rules.empty}" th:text="#{planning.rulesEmpty}">Пока нет.</p>
+        <ul class="list-group" th:unless="${rules.empty}">
+          <li class="list-group-item" th:each="r : ${rules}" th:classappend="${!r.active} ? 'text-body-secondary'">
+            <div class="d-flex justify-content-between gap-2">
+              <a class="text-body text-decoration-none fw-semibold text-truncate" th:href="@{/planning/rules/{id}/edit(id=${r.id})}" th:text="${r.name}">Зарплата</a>
+              <span class="font-monospace text-nowrap" th:text="${@money.format(r.amount, r.currency)}">1 900,00 BYN</span>
+            </div>
+            <div class="small text-body-secondary">
+              <span th:text="#{'planning.frequency.' + ${r.frequency}(${r.interval}, ${r.dayOfMonth}, ${r.dayOfWeek != null ? #messages.msg('planning.weekday.' + r.dayOfWeek) : ''})}">ежемесячно, 20-го</span>
+              <span th:if="${r.autoPost}" th:text="' · ' + #{planning.autoPostShort}">· автоматически</span>
+              <span th:if="${r.active and r.next != null}" th:text="' · ' + #{planning.next} + ' ' + ${#temporals.format(r.next, 'dd.MM')}">· следующий 20.10</span>
+              <span th:unless="${r.active}" th:text="' · ' + #{planning.paused}">· на паузе</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+    </div>
+  </div>
+</main>
+</body>
+</html>

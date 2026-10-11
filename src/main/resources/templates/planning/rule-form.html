@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head><title th:text="(${ruleId} == null ? #{planning.newRule} : #{planning.rule}) + ' · ' + #{app.name}">Регулярная операция</title></head>
+<body>
+<main class="container py-3 narrow-container"
+      th:attr="data-type=${form.type},data-frequency=${form.frequency}"
+      x-data="{ type: $el.dataset.type, frequency: $el.dataset.frequency }">
+  <p class="small text-body-secondary mb-1"><a th:href="@{/planning}" th:text="#{planning.title}">План</a></p>
+  <h1 class="h4 mb-3" th:text="${ruleId} == null ? #{planning.newRule} : #{planning.rule}">Регулярная операция</h1>
+
+  <form method="post" th:object="${form}" novalidate class="vstack gap-3"
+        th:action="${ruleId} == null ? @{/planning/rules} : @{/planning/rules/{id}(id=${ruleId})}">
+    <div class="alert alert-danger mb-0" th:if="${#fields.hasGlobalErrors()}">
+      <div th:each="error : ${#fields.globalErrors()}" th:text="${error}">Ошибка</div>
+    </div>
+    <input type="hidden" th:field="*{version}">
+
+    <div>
+      <label class="form-label" for="name" th:text="#{planning.ruleName}">Название</label>
+      <input class="form-control" th:field="*{name}" th:errorclass="is-invalid" maxlength="80" required autofocus th:placeholder="#{planning.ruleNamePlaceholder}">
+      <div class="invalid-feedback" th:errors="*{name}"></div>
+    </div>
+
+    <div class="btn-group w-100" role="group">
+      <th:block th:each="t : ${ {'EXPENSE', 'INCOME', 'TRANSFER'} }">
+        <input type="radio" class="btn-check" name="type" th:id="${'type-' + t}" th:value="${t}" th:checked="${form.type.name() == t}" x-model="type">
+        <label class="btn btn-outline-primary" th:for="${'type-' + t}" th:text="#{'operation.type.' + ${t}}">Расход</label>
+      </th:block>
+    </div>
+
+    <div class="row g-2">
+      <div class="col-sm-6">
+        <label class="form-label" for="amount" th:text="#{planning.expectedAmount}">Ожидаемая сумма</label>
+        <input class="form-control" th:field="*{amount}" inputmode="decimal" required placeholder="180,00">
+        <div class="form-text" th:text="#{planning.expectedAmountHint}">Если сумма разная — средняя.</div>
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label" for="accountId" x-text="type === 'TRANSFER' ? 'Откуда' : 'Счёт'" th:text="#{operation.account}">Счёт</label>
+        <select class="form-select" th:field="*{accountId}">
+          <option th:each="a : ${accounts}" th:value="${a.id}" th:text="${a.icon} + ' ' + ${a.name} + ' · ' + ${a.currency}">Карта</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row g-2" x-show="type === 'TRANSFER'" x-cloak>
+      <div class="col-sm-6">
+        <label class="form-label" for="toAccountId" th:text="#{operation.toAccount}">Куда</label>
+        <select class="form-select" th:field="*{toAccountId}">
+          <option value="">—</option>
+          <option th:each="a : ${accounts}" th:value="${a.id}" th:text="${a.icon} + ' ' + ${a.name} + ' · ' + ${a.currency}">Машина</option>
+        </select>
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label" for="toAmount" th:text="#{operation.toAmount}">Поступит</label>
+        <input class="form-control" th:field="*{toAmount}" inputmode="decimal">
+        <div class="form-text" th:text="#{planning.toAmountHint}">Только если валюты счетов разные.</div>
+      </div>
+    </div>
+
+    <div x-show="type !== 'TRANSFER'">
+      <label class="form-label" for="categoryId" th:text="#{operation.category}">Категория</label>
+      <select class="form-select" id="categoryId" name="categoryId">
+        <option value="">—</option>
+        <optgroup th:label="#{category.kind.EXPENSE}" x-bind:disabled="type !== 'EXPENSE'">
+          <option th:each="c : ${expenseCategories}" th:value="${c.id}" th:selected="${c.id == form.categoryId}"
+                  th:text="${c.parentId == null} ? ${c.icon} + ' ' + ${c.name} : '— ' + ${c.name}">Еда</option>
+        </optgroup>
+        <optgroup th:label="#{category.kind.INCOME}" x-bind:disabled="type !== 'INCOME'">
+          <option th:each="c : ${incomeCategories}" th:value="${c.id}" th:selected="${c.id == form.categoryId}"
+                  th:text="${c.parentId == null} ? ${c.icon} + ' ' + ${c.name} : '— ' + ${c.name}">Зарплата</option>
+        </optgroup>
+      </select>
+    </div>
+
+    <div x-show="type !== 'TRANSFER'">
+      <label class="form-label" for="payee" th:text="#{operation.payee}">Получатель</label>
+      <input class="form-control" th:field="*{payee}" maxlength="200">
+    </div>
+
+    <fieldset class="border rounded p-3 vstack gap-3">
+      <legend class="h6 float-none w-auto px-2 mb-0" th:text="#{planning.schedule}">Расписание</legend>
+      <div class="row g-2">
+        <div class="col-6">
+          <label class="form-label small" for="frequency" th:text="#{planning.frequency}">Повтор</label>
+          <select class="form-select" th:field="*{frequency}" x-model="frequency">
+            <option value="MONTHLY" th:text="#{planning.frequency.MONTHLY.short}">Ежемесячно</option>
+            <option value="WEEKLY" th:text="#{planning.frequency.WEEKLY.short}">Еженедельно</option>
+            <option value="YEARLY" th:text="#{planning.frequency.YEARLY.short}">Ежегодно</option>
+          </select>
+        </div>
+        <div class="col-6">
+          <label class="form-label small" for="interval" th:text="#{planning.interval}">Каждые</label>
+          <input class="form-control" type="number" min="1" max="24" th:field="*{interval}">
+        </div>
+      </div>
+      <div class="row g-2">
+        <div class="col-6" x-show="frequency === 'MONTHLY'">
+          <label class="form-label small" for="dayOfMonth" th:text="#{planning.dayOfMonth}">Число месяца</label>
+          <input class="form-control" type="number" min="1" max="31" th:field="*{dayOfMonth}">
+          <div class="form-text" th:text="#{planning.dayOfMonthHint}">31 — последний день месяца.</div>
+        </div>
+        <div class="col-6" x-show="frequency === 'WEEKLY'" x-cloak>
+          <label class="form-label small" for="dayOfWeek" th:text="#{planning.dayOfWeek}">День недели</label>
+          <select class="form-select" th:field="*{dayOfWeek}">
+            <option th:each="d : ${#numbers.sequence(1, 7)}" th:value="${d}" th:text="#{'planning.weekday.' + ${d}}">понедельник</option>
+          </select>
+        </div>
+        <div class="col-6">
+          <label class="form-label small" for="startsOn" th:text="#{planning.startsOn}">Начиная с</label>
+          <input class="form-control" type="date" th:field="*{startsOn}">
+          <div class="form-text" x-show="frequency === 'YEARLY'" x-cloak th:text="#{planning.yearlyHint}">Ежегодно — в эту же дату.</div>
+        </div>
+        <div class="col-6">
+          <label class="form-label small" for="endsOn" th:text="#{planning.endsOn}">По</label>
+          <input class="form-control" type="date" th:field="*{endsOn}">
+        </div>
+      </div>
+    </fieldset>
+
+    <div class="row g-2 align-items-end">
+      <div class="col-sm-6">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" th:field="*{autoPost}">
+          <label class="form-check-label" th:for="${#ids.prev('autoPost')}" th:text="#{planning.autoPost}">Проводить автоматически</label>
+        </div>
+        <div class="form-text" th:text="#{planning.autoPostHint}">В день платежа — на ожидаемую сумму.</div>
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label small" for="tolerancePct" th:text="#{planning.tolerance}">Допуск суммы, %</label>
+        <input class="form-control" th:field="*{tolerancePct}" inputmode="decimal">
+        <div class="form-text" th:text="#{planning.toleranceHint}">Введённая операция закроет платёж, если сумма отличается не больше.</div>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2">
+      <button class="btn btn-primary" type="submit" th:text="#{common.save}">Сохранить</button>
+      <a class="btn btn-link" th:href="@{/planning}" th:text="#{common.cancel}">Отмена</a>
+    </div>
+  </form>
+
+  <div class="mt-4 pt-3 border-top d-flex flex-wrap gap-2" th:if="${ruleId != null}">
+    <form method="post" th:action="@{/planning/rules/{id}/toggle(id=${ruleId})}">
+      <button class="btn btn-outline-secondary" type="submit" th:text="#{planning.toggle}">Пауза / продолжить</button>
+    </form>
+    <form method="post" th:action="@{/planning/rules/{id}/delete(id=${ruleId})}" x-data="{ confirm: false }">
+      <button type="button" class="btn btn-outline-danger" x-show="!confirm" x-on:click="confirm = true" th:text="#{common.delete}">Удалить</button>
+      <span x-show="confirm" x-cloak class="d-inline-flex align-items-center gap-2">
+        <span th:text="#{planning.deleteConfirm}">Удалить правило? Проведённые операции останутся.</span>
+        <button type="submit" class="btn btn-danger btn-sm" th:text="#{common.yes}">Да, удалить</button>
+        <button type="button" class="btn btn-link btn-sm" x-on:click="confirm = false" th:text="#{common.cancel}">Отмена</button>
+      </span>
+    </form>
+  </div>
+</main>
+</body>
+</html>

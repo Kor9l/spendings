@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,16 +39,19 @@ public class Operations {
   private final Accounts accounts;
   private final Categories categories;
   private final Currencies currencies;
+  private final ApplicationEventPublisher events;
 
   Operations(
       OperationRepository operations,
       Accounts accounts,
       Categories categories,
-      Currencies currencies) {
+      Currencies currencies,
+      ApplicationEventPublisher events) {
     this.operations = operations;
     this.accounts = accounts;
     this.categories = categories;
     this.currencies = currencies;
+    this.events = events;
   }
 
   public UUID record(RecordOperation command) {
@@ -55,7 +59,7 @@ public class Operations {
     var operation =
         new Operation(
             plan.type(), command.date(), plan.payee(), text(command.note()), plan.lines());
-    return operations.saveAndFlush(operation).id();
+    return published(operations.saveAndFlush(operation));
   }
 
   public void update(UUID id, int expectedVersion, RecordOperation command) {
@@ -78,7 +82,20 @@ public class Operations {
         new Operation(
             plan.type(), command.date(), plan.payee(), text(command.note()), plan.lines());
     operation.markImported(batchId, externalKey);
-    return operations.saveAndFlush(operation).id();
+    return published(operations.saveAndFlush(operation));
+  }
+
+  private UUID published(Operation saved) {
+    OperationLine first = saved.lines().getFirst();
+    events.publishEvent(
+        new OperationRecorded(
+            saved.id(),
+            saved.type(),
+            saved.occurredOn(),
+            first.accountId(),
+            first.amount(),
+            first.categoryId()));
+    return saved.id();
   }
 
   public void confirm(UUID id) {
@@ -141,6 +158,7 @@ public class Operations {
 
   public void delete(UUID id) {
     operations.delete(load(id));
+    operations.flush();
   }
 
   /** Команда, из которой получилась бы эта операция: для формы правки. */

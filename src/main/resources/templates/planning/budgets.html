@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head><title th:text="#{nav.budgets} + ' · ' + #{app.name}">Бюджеты</title></head>
+<body>
+<main class="container py-3 narrow-container" th:with="m=${view.period.month}">
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+    <a class="btn btn-sm btn-outline-secondary" th:href="@{/budgets(month=${m.minusMonths(1)})}" aria-label="Предыдущий месяц">‹</a>
+    <h1 class="h4 mb-0 text-capitalize" th:text="#{nav.budgets} + ': ' + ${#temporals.format(m.atDay(1), 'LLLL yyyy')}">Бюджеты: октябрь 2026</h1>
+    <a class="btn btn-sm btn-outline-secondary" th:href="@{/budgets(month=${m.plusMonths(1)})}" aria-label="Следующий месяц">›</a>
+    <a class="btn btn-sm btn-link" th:unless="${isCurrent}" th:href="@{/budgets}" th:text="#{dashboard.thisMonth}">Этот месяц</a>
+  </div>
+  <p class="small text-body-secondary mb-3"
+     th:text="#{budget.period(${#temporals.format(view.period.from, 'd MMMM')}, ${#temporals.format(view.period.to, 'd MMMM')}, ${view.currency})}">5 октября — 4 ноября, суммы в BYN</p>
+
+  <p class="text-body-secondary" th:if="${view.rows.empty}" th:text="#{budget.empty}">Бюджетов на этот месяц нет.</p>
+
+  <ul class="list-group mb-3" th:unless="${view.rows.empty}">
+    <li class="list-group-item" th:each="r : ${view.rows}">
+      <div class="d-flex justify-content-between align-items-baseline gap-2">
+        <a class="text-body text-decoration-none fw-semibold text-truncate"
+           th:href="@{/operations(categoryId=${r.category.id},from=${view.period.from},to=${view.period.to})}"
+           th:text="${r.category.icon} + ' ' + ${r.category.displayName()}">🍽️ Еда</a>
+        <span class="font-monospace text-nowrap small">
+          <span th:text="${@money.format(r.spent, view.currency)}">320,00</span>
+          <span class="text-body-secondary" th:text="#{goal.of} + ' ' + ${@money.format(r.available, view.currency)}">из 400,00</span>
+        </span>
+      </div>
+      <div class="progress my-2" style="height: 8px" role="img" th:aria-label="${r.percent} + '%'">
+        <div class="progress-bar" th:classappend="${'bg-' + r.level()}" th:style="'width:' + ${r.bar()} + '%'"></div>
+      </div>
+      <div class="d-flex flex-wrap justify-content-between gap-2 small text-body-secondary">
+        <span>
+          <span th:text="${r.remaining.signum() >= 0} ? #{budget.left(${@money.format(r.remaining, view.currency)})} : #{budget.over(${@money.format(r.remaining.negate(), view.currency)})}"
+                th:classappend="${r.remaining.signum() < 0} ? 'amount-negative'">осталось 80,00</span>
+          <span th:if="${r.planned.signum() > 0}" th:classappend="${r.forecastOver()} ? 'text-warning'"
+                th:text="' · ' + #{budget.planned(${@money.format(r.planned, view.currency)})}">· ещё ожидается 50,00</span>
+          <span th:if="${r.carry.signum() != 0}" th:text="' · ' + #{budget.carry(${@money.signed(r.carry, view.currency)})}">· перенос +20,00</span>
+        </span>
+        <form method="post" th:action="@{/budgets/{id}/delete(id=${r.id})}">
+          <input type="hidden" name="month" th:value="${m}">
+          <button class="btn btn-sm btn-link p-0 text-body-secondary" type="submit" th:text="#{common.delete}">Удалить</button>
+        </form>
+      </div>
+    </li>
+  </ul>
+
+  <div class="d-flex flex-wrap justify-content-between gap-2 small mb-4" th:unless="${view.rows.empty}">
+    <span th:text="#{budget.total(${@money.format(view.totalSpent, view.currency)}, ${@money.format(view.totalLimit, view.currency)})}">Всего потрачено 900,00 при лимитах 1 200,00</span>
+    <span class="text-body-secondary" th:if="${view.unbudgeted.signum() > 0}"
+          th:text="#{budget.unbudgeted(${@money.format(view.unbudgeted, view.currency)})}">без бюджета: 120,00</span>
+  </div>
+
+  <section class="card mb-3">
+    <div class="card-body">
+      <h2 class="h6" th:text="#{budget.add}">Бюджет на категорию</h2>
+      <form class="row g-2 align-items-end" method="post" th:action="@{/budgets}">
+        <input type="hidden" name="month" th:value="${m}">
+        <div class="col-12 col-sm-6">
+          <label class="form-label small" for="categoryId" th:text="#{operation.category}">Категория</label>
+          <select class="form-select" id="categoryId" name="categoryId">
+            <option th:each="c : ${options}" th:value="${c.id}"
+                    th:text="${c.parentId == null} ? ${c.icon} + ' ' + ${c.name} : '— ' + ${c.name}">Еда</option>
+          </select>
+        </div>
+        <div class="col-6 col-sm-3">
+          <label class="form-label small" for="amount" th:text="#{budget.limit(${view.currency})}">Лимит, BYN</label>
+          <input class="form-control" id="amount" name="amount" inputmode="decimal" required placeholder="400">
+        </div>
+        <div class="col-6 col-sm-3">
+          <button class="btn btn-primary w-100" type="submit" th:text="#{common.save}">Сохранить</button>
+        </div>
+        <div class="col-12">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="rollover" name="rollover" value="true">
+            <label class="form-check-label small" for="rollover" th:text="#{budget.rollover}">Переносить остаток на следующий месяц</label>
+          </div>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <div class="d-flex flex-wrap gap-3 align-items-end">
+    <form method="post" th:action="@{/budgets/copy}">
+      <input type="hidden" name="month" th:value="${m}">
+      <button class="btn btn-outline-secondary btn-sm" type="submit" th:text="#{budget.copy}">Скопировать с прошлого месяца</button>
+    </form>
+    <form class="d-flex gap-2 align-items-end" method="post" th:action="@{/budgets/start-day}">
+      <div>
+        <label class="form-label small mb-1" for="day" th:text="#{budget.startDay}">Месяц начинается</label>
+        <input class="form-control form-control-sm" type="number" min="1" max="28" id="day" name="day" th:value="${startDay}" style="width: 5rem">
+      </div>
+      <button class="btn btn-outline-secondary btn-sm" type="submit" th:text="#{common.save}">Сохранить</button>
+    </form>
+  </div>
+  <p class="small text-body-secondary mt-2" th:text="#{budget.startDayHint}">Например, с дня зарплаты.</p>
+</main>
+</body>
+</html>
