@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head><title th:text="#{import.mappingTitle} + ' · ' + #{app.name}">Колонки</title></head>
+<body>
+<main class="container py-3">
+  <p class="small text-body-secondary mb-1"><a th:href="@{/import}" th:text="#{import.title}">Импорт</a></p>
+  <h1 class="h4 mb-3"><span th:text="#{import.mappingTitle}">Колонки</span> · <span class="text-body-secondary" th:text="${upload.fileName}">выписка.csv</span></h1>
+
+  <div id="workspace" th:fragment="workspace">
+    <div class="alert alert-danger" th:if="${error != null}" th:text="#{${error}}">Ошибка</div>
+
+    <form method="post" th:object="${mapping}" th:action="@{/import/{id}/commit(id=${upload.id})}"
+          th:hx-post="@{/import/{id}/preview(id=${upload.id})}" hx-trigger="change" hx-target="#workspace" hx-swap="outerHTML"
+          class="vstack gap-3">
+      <input type="hidden" th:field="*{profileId}">
+
+      <div class="row g-2">
+        <div class="col-12 col-md-4">
+          <label class="form-label small" for="accountId" th:text="#{import.account}">На какой счёт</label>
+          <select class="form-select" th:field="*{accountId}">
+            <option th:each="a : ${accounts}" th:value="${a.id}" th:text="${a.icon} + ' ' + ${a.name} + ' · ' + ${a.currency}">Карта · BYN</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2" th:unless="${table.excel}">
+          <label class="form-label small" for="encoding" th:text="#{import.encoding}">Кодировка</label>
+          <select class="form-select" th:field="*{encoding}">
+            <option value="UTF-8">UTF-8</option>
+            <option value="windows-1251">windows-1251</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2" th:unless="${table.excel}">
+          <label class="form-label small" for="delimiter" th:text="#{import.delimiter}">Разделитель</label>
+          <select class="form-select" th:field="*{delimiter}">
+            <option value=";">;</option>
+            <option value=",">,</option>
+            <option value="\t">Tab</option>
+            <option value="|">|</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small" for="headerRow" th:text="#{import.headerRow}">Строка заголовков</label>
+          <input class="form-control" type="number" min="0" th:field="*{headerRow}">
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small" for="dateFormat" th:text="#{import.dateFormat}">Формат даты</label>
+          <input class="form-control font-monospace" th:field="*{dateFormat}">
+        </div>
+      </div>
+
+      <div class="row g-2">
+        <th:block th:each="field : ${ {'dateColumn', 'amountColumn', 'debitColumn', 'creditColumn', 'descriptionColumn', 'originalAmountColumn', 'originalCurrencyColumn'} }">
+          <div class="col-6 col-md-3">
+            <label class="form-label small" th:for="${field}" th:text="#{'import.column.' + ${field}}">Колонка</label>
+            <select class="form-select form-select-sm" th:id="${field}" th:name="${field}">
+              <option value="" th:text="#{common.none}">—</option>
+              <option th:each="label, i : ${columnLabels}" th:value="${i.index}" th:text="${label}"
+                      th:selected="${mapping['__${field}__'] != null and mapping['__${field}__'] == i.index}">1 · Дата</option>
+            </select>
+          </div>
+        </th:block>
+        <div class="col-6 col-md-3 d-flex align-items-end">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" th:field="*{invertSign}">
+            <label class="form-check-label small" th:for="${#ids.prev('invertSign')}" th:text="#{import.invertSign}">Расходы со знаком «+»</label>
+          </div>
+        </div>
+      </div>
+      <p class="small text-body-secondary mb-0" th:text="#{import.amountHint}">Сумма — одной колонкой со знаком или двумя: списание и зачисление.</p>
+
+      <!-- файл как есть -->
+      <details>
+        <summary class="small" th:text="#{import.rawFile(${table.rows.size()})}">Файл: первые строки</summary>
+        <div class="table-responsive mt-2">
+          <table class="table table-sm small mb-0">
+            <tr th:each="row, r : ${rawRows}" th:classappend="${r.index == mapping.headerRow} ? 'table-active fw-semibold'">
+              <td class="text-body-secondary" th:text="${r.index}">0</td>
+              <td th:each="cell : ${row}" class="text-nowrap" th:text="${cell}">ячейка</td>
+            </tr>
+          </table>
+        </div>
+      </details>
+
+      <!-- предпросмотр -->
+      <div th:if="${preview.account == null}" class="alert alert-info mb-0" th:text="#{import.chooseColumns}">Выберите счёт, колонку даты и суммы.</div>
+      <th:block th:if="${preview.account != null}">
+        <div class="d-flex flex-wrap gap-2 small">
+          <span class="badge text-bg-success" th:text="#{import.status.NEW} + ': ' + ${preview.newRows()}">новые: 20</span>
+          <span class="badge text-bg-warning" th:text="#{import.status.PROBABLE_DUPLICATE} + ': ' + ${preview.probableDuplicates()}">похоже на ручную: 2</span>
+          <span class="badge text-bg-secondary" th:text="#{import.status.ALREADY_IMPORTED} + ': ' + ${preview.alreadyImported()}">уже были: 0</span>
+          <span class="badge text-bg-danger" th:text="#{import.status.ERROR} + ': ' + ${preview.errors()}">ошибки: 1</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle small mb-0">
+            <thead>
+            <tr>
+              <th th:text="#{operation.date}">Дата</th>
+              <th th:text="#{import.description}">Описание</th>
+              <th th:text="#{operation.category}">Категория</th>
+              <th class="text-end" th:text="#{operation.amount}">Сумма</th>
+              <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="p : ${previewRows}" th:classappend="${p.status.name() != 'NEW'} ? 'text-body-secondary'">
+              <td class="text-nowrap" th:text="${p.row.date != null} ? ${#temporals.format(p.row.date, 'dd.MM.yyyy')} : '—'">03.10.2026</td>
+              <td class="text-truncate" style="max-width: 22rem" th:text="${p.row.error} ?: ${p.row.description}">Евроопт</td>
+              <td class="text-nowrap" th:text="${p.categoryId != null} ? ${categories[p.categoryId].displayName()} : #{import.noRule}">Еда › Продукты</td>
+              <td class="text-end font-monospace text-nowrap" th:classappend="${p.row.amount != null and p.row.amount.signum() > 0} ? 'amount-positive'"
+                  th:text="${p.row.amount != null} ? ${@money.signed(p.row.amount, preview.account.currency)} : ''">−62,10 BYN</td>
+              <td><span class="badge" th:classappend="${p.status.name() == 'NEW'} ? 'text-bg-success' : (${p.status.name() == 'ERROR'} ? 'text-bg-danger' : (${p.status.name() == 'PROBABLE_DUPLICATE'} ? 'text-bg-warning' : 'text-bg-secondary'))"
+                        th:text="#{'import.status.' + ${p.status}}">новая</span></td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="small text-body-secondary mb-0" th:if="${preview.rows.size() > previewRows.size()}"
+           th:text="#{import.previewMore(${preview.rows.size() - previewRows.size()})}">и ещё 40 строк</p>
+      </th:block>
+
+      <div class="row g-2 align-items-end border-top pt-3">
+        <div class="col-12 col-md-4">
+          <label class="form-label small" for="saveAsProfile" th:text="#{import.saveProfile}">Сохранить как профиль банка</label>
+          <input class="form-control" th:field="*{saveAsProfile}" th:placeholder="#{import.saveProfilePlaceholder}" maxlength="60">
+        </div>
+        <div class="col-12 col-md-4">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" th:field="*{includeProbableDuplicates}">
+            <label class="form-check-label small" th:for="${#ids.prev('includeProbableDuplicates')}" th:text="#{import.includeDuplicates}">Импортировать и вероятные дубли</label>
+          </div>
+        </div>
+        <div class="col-12 col-md-4 text-md-end">
+          <button class="btn btn-primary" type="submit" th:disabled="${preview.account == null}"
+                  th:text="#{import.commit}">Во «Входящие»</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</main>
+</body>
+</html>

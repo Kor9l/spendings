@@ -50,6 +50,12 @@ class Operation {
   @Column(nullable = false)
   private Status status = Status.CLEARED;
 
+  @Column(name = "import_id")
+  private @Nullable UUID importId;
+
+  @Column(name = "external_key")
+  private @Nullable String externalKey;
+
   @Version private int version;
 
   @Column(name = "created_at", nullable = false)
@@ -103,6 +109,23 @@ class Operation {
     for (int i = 0; i < drafts.size(); i++) {
       lines.add(new OperationLine(this, i, drafts.get(i)));
     }
+  }
+
+  /** Из выписки: ждёт подтверждения во «Входящих», в остатки и отчёты пока не входит. */
+  void markImported(UUID importId, String externalKey) {
+    this.source = Source.IMPORT;
+    this.status = Status.REVIEW;
+    this.importId = importId;
+    this.externalKey = externalKey;
+  }
+
+  void confirm() {
+    this.status = Status.CLEARED;
+    this.updatedAt = Instant.now();
+  }
+
+  boolean inReview() {
+    return status == Status.REVIEW;
   }
 
   UUID id() {

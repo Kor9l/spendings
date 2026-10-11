@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head><title th:text="#{import.title} + ' · ' + #{app.name}">Импорт</title></head>
+<body>
+<main class="container py-3 narrow-container">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h4 mb-0" th:text="#{import.title}">Импорт выписки</h1>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-secondary btn-sm" th:href="@{/import/rules}" th:text="#{import.rules}">Правила</a>
+      <a class="btn btn-outline-primary btn-sm" th:href="@{/inbox}" th:text="#{nav.inbox}">Входящие</a>
+    </div>
+  </div>
+
+  <div class="alert alert-info" th:if="${accounts.empty}">
+    <span th:text="#{operation.noAccounts}">Сначала создайте счёт.</span>
+    <a class="alert-link" th:href="@{/accounts/new}" th:text="#{operation.createAccount}">Создать счёт</a>
+  </div>
+
+  <section class="card mb-4" th:unless="${accounts.empty}">
+    <div class="card-body">
+      <p class="text-body-secondary small" th:text="#{import.hint}">CSV или XLSX из интернет-банка.</p>
+      <form method="post" th:action="@{/import/upload}" enctype="multipart/form-data" hx-boost="false" class="vstack gap-3">
+        <input class="form-control" type="file" name="file" accept=".csv,.txt,.xlsx" required th:attr="aria-label=#{import.file}">
+        <div th:unless="${profiles.empty}">
+          <label class="form-label small" for="profileId" th:text="#{import.profile}">Профиль банка</label>
+          <select class="form-select" id="profileId" name="profileId">
+            <option value="" th:text="#{import.profileNone}">Определить колонки автоматически</option>
+            <option th:each="p : ${profiles}" th:value="${p.id}" th:text="${p.name}">Приорбанк</option>
+          </select>
+        </div>
+        <button class="btn btn-primary align-self-start" type="submit" th:text="#{import.next}">Дальше</button>
+      </form>
+    </div>
+  </section>
+
+  <section class="mb-4" th:unless="${batches.empty}">
+    <h2 class="h6 text-body-secondary text-uppercase small" th:text="#{import.batches}">Последние импорты</h2>
+    <ul class="list-group">
+      <li class="list-group-item d-flex flex-wrap align-items-center gap-2" th:each="b : ${batches}">
+        <span class="flex-grow-1 min-w-0">
+          <span class="d-block text-truncate" th:text="${b.fileName}">выписка.csv</span>
+          <span class="small text-body-secondary"
+                th:text="${#temporals.format(b.importedAt.atZone(T(java.time.ZoneId).systemDefault()), 'dd.MM.yyyy HH:mm')} + ' · ' + ${b.account} + ' · ' + #{import.batchCounts(${b.imported}, ${b.skipped}, ${b.inReview})}">12.10.2026 · Карта · добавлено 20</span>
+        </span>
+        <form method="post" th:action="@{/import/batches/{id}/undo(id=${b.id})}" x-data="{ confirm: false }">
+          <button type="button" class="btn btn-sm btn-outline-danger" x-show="!confirm" x-on:click="confirm = true" th:text="#{import.undo}">Отменить</button>
+          <span x-show="confirm" x-cloak class="d-inline-flex align-items-center gap-2 small">
+            <span th:text="#{import.undoConfirm}">Удалить все операции этого импорта?</span>
+            <button type="submit" class="btn btn-danger btn-sm" th:text="#{common.yes}">Да</button>
+            <button type="button" class="btn btn-link btn-sm" x-on:click="confirm = false" th:text="#{common.cancel}">Отмена</button>
+          </span>
+        </form>
+      </li>
+    </ul>
+  </section>
+
+  <section th:unless="${profiles.empty}">
+    <h2 class="h6 text-body-secondary text-uppercase small" th:text="#{import.profiles}">Профили банков</h2>
+    <ul class="list-group">
+      <li class="list-group-item d-flex justify-content-between align-items-center" th:each="p : ${profiles}">
+        <span th:text="${p.name}">Приорбанк</span>
+        <form method="post" th:action="@{/import/profiles/{id}/delete(id=${p.id})}">
+          <button class="btn btn-sm btn-link text-body-secondary" type="submit" th:text="#{common.delete}">Удалить</button>
+        </form>
+      </li>
+    </ul>
+  </section>
+</main>
+</body>
+</html>

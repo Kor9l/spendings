@@ -46,6 +46,20 @@
     </table>
   </section>
 
+  <section class="mb-5">
+    <h2 class="h5" th:text="#{backup.title}">Бэкап</h2>
+    <p class="small text-body-secondary" th:text="#{backup.hint}">Все данные одним файлом.</p>
+    <a class="btn btn-outline-primary mb-3" th:href="@{/settings/backup.json}" hx-boost="false" th:text="#{backup.download}">Скачать бэкап</a>
+    <form method="post" th:action="@{/settings/restore}" enctype="multipart/form-data" hx-boost="false" class="vstack gap-2">
+      <label class="form-label small mb-0" for="restore-file" th:text="#{backup.restore}">Восстановить</label>
+      <div class="d-flex gap-2">
+        <input class="form-control" type="file" id="restore-file" name="file" accept=".json" required>
+        <button class="btn btn-outline-secondary" type="submit" th:text="#{backup.restore}">Восстановить</button>
+      </div>
+      <p class="small text-body-secondary mb-0" th:text="#{backup.restoreHint}">Только в пустую установку.</p>
+    </form>
+  </section>
+
   <section>
     <h2 class="h5" th:text="#{settings.manualRate}">Свой курс</h2>
     <p class="small text-body-secondary" th:text="#{settings.manualRateHint}">Если нужного курса нет или он другой.</p>

@@ -21,6 +21,7 @@ webjars-locator = { module = "org.webjars:webjars-locator-lite", version.ref = "
 webjars-sortablejs = { module = "org.webjars.npm:sortablejs", version.ref = "sortablejs" }
 webjars-echarts = { module = "org.webjars.npm:echarts", version.ref = "echarts" }
 fastexcel = { module = "org.dhatim:fastexcel", version.ref = "fastexcel" }
+fastexcel-reader = { module = "org.dhatim:fastexcel-reader", version.ref = "fastexcel" }
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }

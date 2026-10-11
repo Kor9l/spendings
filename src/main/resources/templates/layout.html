@@ -29,6 +29,8 @@
         <li class="nav-item"><a class="nav-link" th:href="@{/goals}" th:text="#{nav.goals}">Цели</a></li>
         <li class="nav-item"><a class="nav-link" th:href="@{/reports}" th:text="#{nav.reports}">Отчёты</a></li>
         <li class="nav-item"><a class="nav-link" th:href="@{/categories}" th:text="#{nav.categories}">Категории</a></li>
+        <li class="nav-item"><a class="nav-link" th:href="@{/import}" th:text="#{nav.import}">Импорт</a></li>
+        <li class="nav-item"><a class="nav-link" th:href="@{/inbox}"><span th:text="#{nav.inbox}">Входящие</span> <span class="badge rounded-pill text-bg-warning" th:if="${inboxCount != null and inboxCount > 0}" th:text="${inboxCount}">3</span></a></li>
         <li class="nav-item"><a class="nav-link" th:href="@{/settings}" th:text="#{nav.settings}">Настройки</a></li>
       </ul>
       <a class="btn btn-primary btn-sm d-none d-md-inline-block" th:href="@{/quick}" th:text="'+ ' + #{nav.add}">+ Добавить</a>

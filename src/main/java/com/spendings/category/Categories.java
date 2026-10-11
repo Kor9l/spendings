@@ -23,6 +23,7 @@ public class Categories {
 
   static final String DEFAULT_ICON = "🏷️";
   static final String DEFAULT_COLOR = "#6c757d";
+  static final String UNCATEGORIZED = "Не разобрано";
 
   private final CategoryRepository categories;
   private final CategoryUsage usage;
@@ -70,6 +71,24 @@ public class Categories {
 
   public CategoryRef get(UUID id) {
     return find(id).orElseThrow(() -> new NotFoundException("Категория"));
+  }
+
+  /** Категория «Не разобрано» этого вида: куда попадает импорт без подходящего правила. */
+  @Transactional
+  public UUID uncategorized(CategoryKind kind) {
+    return categories.findAllByOrderBySortOrderAscNameAsc().stream()
+        .filter(c -> c.kind() == kind && c.isTopLevel() && UNCATEGORIZED.equals(c.name()))
+        .findFirst()
+        .map(
+            c -> {
+              c.restore();
+              return c.id();
+            })
+        .orElseGet(
+            () ->
+                categories
+                    .saveAndFlush(new Category(kind, null, UNCATEGORIZED, "❓", "#adb5bd", 100))
+                    .id());
   }
 
   // ---- изменение: только для контроллера модуля ----
