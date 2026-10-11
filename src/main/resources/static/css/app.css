@@ -141,3 +141,17 @@ body {
 body:has(.op-form) .app-fab {
   display: none !important;
 }
+
+.chart {
+  width: 100%;
+}
+
+.chart-square {
+  aspect-ratio: 1;
+  max-width: 100%;
+  max-height: 28rem;
+}
+
+.chart-wide {
+  height: 22rem;
+}

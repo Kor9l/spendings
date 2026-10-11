@@ -46,6 +46,10 @@
   </form>
 
   <div id="results" th:fragment="results">
+    <div class="d-flex justify-content-end gap-2 mb-2" hx-boost="false" th:unless="${feed.empty}">
+      <a class="btn btn-outline-secondary btn-sm" th:href="${'/operations/export.csv?' + exportQuery}" th:text="#{operation.export.csv}">CSV</a>
+      <a class="btn btn-outline-secondary btn-sm" th:href="${'/operations/export.xlsx?' + exportQuery}" th:text="#{operation.export.xlsx}">Excel</a>
+    </div>
     <p class="text-body-secondary py-4 text-center" th:if="${feed.empty}"
        th:text="${filter != null and filter.active} ? #{operation.feed.emptyFiltered} : #{operation.feed.empty}">Операций пока нет.</p>
     <th:block th:fragment="days">

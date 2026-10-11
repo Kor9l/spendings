@@ -91,7 +91,7 @@ class FirstRunAndLoginTests {
     assertThat(mvc.get().uri("/").with(user("owner")))
         .hasStatusOk()
         .bodyText()
-        .contains("Здравствуйте, owner")
+        .contains("Начнём со счёта")
         .contains("BYN");
     assertThat(mvc.get().uri("/system/status").with(user("owner")))
         .hasStatusOk()

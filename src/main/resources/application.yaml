@@ -33,3 +33,10 @@ spendings:
   security:
     # Задайте в продакшене (openssl rand -hex 32), иначе после перезапуска remember-me сбрасывается
     remember-me-key: ${SPENDINGS_REMEMBER_ME_KEY:}
+  fx:
+    nbrb:
+      base-url: https://api.nbrb.by
+    sync:
+      enabled: true
+      cron: "0 15 12,18 * * *"   # НБРБ публикует курс на завтра днём
+      zone: Europe/Minsk

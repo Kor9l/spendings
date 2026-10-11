@@ -13,7 +13,9 @@
   <script defer th:src="@{/webjars/htmx.org/dist/htmx.min.js}"></script>
   <script defer th:src="@{/webjars/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
   <script defer th:src="@{/webjars/sortablejs/Sortable.min.js}"></script>
+  <script defer th:src="@{/webjars/echarts/dist/echarts.min.js}"></script>
   <script defer th:src="@{/js/app.js}"></script>
+  <script defer th:src="@{/js/charts.js}"></script>
   <script defer th:src="@{/js/operation-form.js}"></script>
   <script defer th:src="@{/webjars/alpinejs/dist/cdn.min.js}"></script>
 </head>
@@ -24,7 +26,9 @@
       <ul class="navbar-nav flex-row gap-3 me-auto overflow-x-auto app-nav">
         <li class="nav-item"><a class="nav-link" th:href="@{/operations}" th:text="#{nav.operations}">Операции</a></li>
         <li class="nav-item"><a class="nav-link" th:href="@{/accounts}" th:text="#{nav.accounts}">Счета</a></li>
+        <li class="nav-item"><a class="nav-link" th:href="@{/reports}" th:text="#{nav.reports}">Отчёты</a></li>
         <li class="nav-item"><a class="nav-link" th:href="@{/categories}" th:text="#{nav.categories}">Категории</a></li>
+        <li class="nav-item"><a class="nav-link" th:href="@{/settings}" th:text="#{nav.settings}">Настройки</a></li>
       </ul>
       <a class="btn btn-primary btn-sm d-none d-md-inline-block" th:href="@{/quick}" th:text="'+ ' + #{nav.add}">+ Добавить</a>
       <form class="d-flex align-items-center gap-2" th:action="@{/logout}" method="post" hx-boost="false">
