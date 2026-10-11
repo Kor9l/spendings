@@ -3,9 +3,12 @@ package com.spendings.operation;
 import com.spendings.account.AccountMovements;
 import com.spendings.category.CategoriesMerged;
 import com.spendings.category.CategoryUsage;
+import com.spendings.fx.RateDemand;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.context.event.EventListener;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -16,7 +19,7 @@ import org.springframework.stereotype.Component;
  * получился бы цикл бинов {@code Accounts → AccountMovements → Accounts}.
  */
 @Component
-class LedgerTotals implements AccountMovements, CategoryUsage {
+class LedgerTotals implements AccountMovements, CategoryUsage, RateDemand {
 
   private final JdbcClient jdbc;
 
@@ -56,6 +59,11 @@ class LedgerTotals implements AccountMovements, CategoryUsage {
         .param(categoryId)
         .query(Boolean.class)
         .single();
+  }
+
+  @Override
+  public Optional<LocalDate> earliestDate() {
+    return jdbc.sql("select min(occurred_on) from operation").query(LocalDate.class).optional();
   }
 
   /** Синхронно, в транзакции объединения: до того, как исходная категория будет удалена. */

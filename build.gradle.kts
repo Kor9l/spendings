@@ -32,6 +32,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-flyway")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("org.springframework.boot:spring-boot-starter-restclient")
     implementation("org.springframework.modulith:spring-modulith-starter-core")
     implementation("org.flywaydb:flyway-database-postgresql")
 
@@ -39,6 +40,8 @@ dependencies {
     implementation(libs.webjars.alpinejs)
     implementation(libs.webjars.bootstrap)
     implementation(libs.webjars.sortablejs)
+    implementation(libs.webjars.echarts)
+    implementation(libs.fastexcel)
     implementation(libs.webjars.locator)
 
     runtimeOnly(libs.postgresql)

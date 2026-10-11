@@ -1,0 +1,5 @@
+# Дополняет основной application.yaml в тестах (classpath:/config/ читается после classpath:/).
+spendings:
+  fx:
+    sync:
+      enabled: false   # в тестах нет доступа к НБРБ; курсы кладут сами тесты

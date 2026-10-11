@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head><title th:text="#{settings.title} + ' · ' + #{app.name}">Настройки</title></head>
+<body>
+<main class="container py-3 narrow-container">
+  <h1 class="h4 mb-4" th:text="#{settings.title}">Настройки</h1>
+
+  <section class="mb-5">
+    <h2 class="h5" th:text="#{dashboard.baseCurrency}">Базовая валюта</h2>
+    <p class="small text-body-secondary" th:text="#{settings.baseCurrencyHint}">В ней считаются итоги и отчёты.</p>
+    <form class="d-flex gap-2" method="post" th:action="@{/settings/base-currency}">
+      <select class="form-select" name="code" th:attr="aria-label=#{dashboard.baseCurrency}">
+        <option th:each="c : ${currencies}" th:value="${c.code}" th:selected="${c.code == baseCurrency}"
+                th:text="${c.code} + ' — ' + ${c.name}">BYN</option>
+      </select>
+      <button class="btn btn-primary" type="submit" th:text="#{common.save}">Сохранить</button>
+    </form>
+  </section>
+
+  <section class="mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h2 class="h5 mb-0" th:text="#{settings.rates}">Курсы</h2>
+      <form method="post" th:action="@{/settings/rates/sync}">
+        <button class="btn btn-sm btn-outline-primary" type="submit" th:text="#{settings.syncNow}">Обновить с НБРБ</button>
+      </form>
+    </div>
+    <p class="small text-body-secondary" th:text="#{settings.ratesHint(${pivot})}">Курсы НБРБ загружаются дважды в день.</p>
+    <p class="text-body-secondary" th:if="${rates.empty}" th:text="#{settings.ratesEmpty}">Курсов пока нет.</p>
+    <table class="table table-sm" th:unless="${rates.empty}">
+      <thead>
+      <tr>
+        <th th:text="#{account.currency}">Валюта</th>
+        <th class="text-end" th:text="#{settings.rate(${pivot})}">Курс</th>
+        <th th:text="#{operation.date}">Дата</th>
+        <th th:text="#{settings.source}">Источник</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr th:each="r : ${rates}">
+        <td class="font-monospace" th:text="${r.base}">USD</td>
+        <td class="text-end font-monospace" th:text="${#numbers.formatDecimal(r.rate, 1, 'WHITESPACE', 4, 'COMMA')}">3,0051</td>
+        <td th:text="${#temporals.format(r.rateDate, 'dd.MM.yyyy')}">11.10.2026</td>
+        <td class="small text-body-secondary" th:text="#{'settings.source.' + ${r.source}}">НБРБ</td>
+      </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2 class="h5" th:text="#{settings.manualRate}">Свой курс</h2>
+    <p class="small text-body-secondary" th:text="#{settings.manualRateHint}">Если нужного курса нет или он другой.</p>
+    <form class="row g-2 align-items-end" method="post" th:action="@{/settings/rates}">
+      <div class="col-4 col-sm-3">
+        <label class="form-label small" for="rate-currency" th:text="#{account.currency}">Валюта</label>
+        <select class="form-select" id="rate-currency" name="currency">
+          <option th:each="c : ${currencies}" th:unless="${c.code == pivot}" th:value="${c.code}" th:text="${c.code}">USD</option>
+        </select>
+      </div>
+      <div class="col-8 col-sm-4">
+        <label class="form-label small" for="rate-date" th:text="#{operation.date}">Дата</label>
+        <input class="form-control" type="date" id="rate-date" name="date" th:value="${today}" required>
+      </div>
+      <div class="col-8 col-sm-3">
+        <label class="form-label small" for="rate-value" th:text="#{settings.rate(${pivot})}">Курс</label>
+        <input class="form-control" id="rate-value" name="rate" inputmode="decimal" required placeholder="3,0051">
+      </div>
+      <div class="col-4 col-sm-2">
+        <button class="btn btn-primary w-100" type="submit" th:text="#{common.save}">Сохранить</button>
+      </div>
+    </form>
+  </section>
+</main>
+</body>
+</html>

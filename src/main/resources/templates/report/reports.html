@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head><title th:text="#{report.title} + ' · ' + #{app.name}">Отчёты</title></head>
+<body>
+<main class="container py-3">
+  <h1 class="h4 mb-3" th:text="#{report.title}">Отчёты</h1>
+
+  <!-- период -->
+  <form class="d-flex flex-wrap align-items-end gap-2 mb-2" method="get" th:action="@{/reports}">
+    <input type="hidden" name="kind" th:value="${kind}">
+    <div>
+      <label class="form-label small mb-1" for="from" th:text="#{operation.filter.from}">С</label>
+      <input class="form-control form-control-sm" type="date" id="from" name="from" th:value="${from}">
+    </div>
+    <div>
+      <label class="form-label small mb-1" for="to" th:text="#{operation.filter.to}">По</label>
+      <input class="form-control form-control-sm" type="date" id="to" name="to" th:value="${to}">
+    </div>
+    <button class="btn btn-sm btn-primary" type="submit" th:text="#{report.show}">Показать</button>
+  </form>
+  <div class="d-flex flex-wrap gap-2 mb-4">
+    <a class="btn btn-sm btn-outline-secondary" th:each="p : ${periods}"
+       th:classappend="${p.from == from and p.to == to} ? 'active'"
+       th:href="@{/reports(from=${p.from},to=${p.to},kind=${kind})}" th:text="${p.label}">Этот месяц</a>
+  </div>
+
+  <div class="alert alert-warning" th:if="${totals.missingRates > 0}">
+    <span th:text="#{report.missingRates(${totals.missingRates})}">Нет курса для 2 операций.</span>
+    <a class="alert-link" th:href="@{/settings}" th:text="#{nav.settings}">Настройки</a>
+  </div>
+
+  <div class="d-flex flex-wrap gap-4 mb-4 font-monospace">
+    <span><span class="text-body-secondary small" th:text="#{dashboard.income}">Доходы</span><br>
+      <span class="fs-5 amount-positive" th:text="${@money.format(totals.income, baseCurrency)}">1 400,00 BYN</span></span>
+    <span><span class="text-body-secondary small" th:text="#{dashboard.expenses}">Расходы</span><br>
+      <span class="fs-5" th:text="${@money.format(totals.expenses, baseCurrency)}">304,30 BYN</span></span>
+    <span><span class="text-body-secondary small" th:text="#{dashboard.net}">Сальдо</span><br>
+      <span class="fs-5" th:classappend="${totals.net().signum() < 0} ? 'amount-negative'"
+            th:text="${@money.signed(totals.net(), baseCurrency)}">+1 095,70 BYN</span></span>
+  </div>
+
+  <!-- по категориям -->
+  <section class="mb-5">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+      <h2 class="h5 mb-0" th:text="#{report.byCategory}">По категориям</h2>
+      <ul class="nav nav-pills nav-sm">
+        <li class="nav-item" th:each="k : ${T(com.spendings.category.CategoryKind).values()}">
+          <a class="nav-link py-1 px-3" th:classappend="${k == kind} ? 'active'"
+             th:href="@{/reports(from=${from},to=${to},kind=${k})}" th:text="#{'category.kind.' + ${k}}">Расходы</a>
+        </li>
+      </ul>
+    </div>
+    <p class="text-body-secondary py-3" th:if="${breakdown.empty}" th:text="#{report.empty}">За этот период ничего нет.</p>
+    <div class="row g-4" th:unless="${breakdown.empty}">
+      <div class="col-12 col-lg-5">
+        <div class="chart chart-square" th:attr="data-chart=${sunburst},data-currency=${baseCurrency}"
+             role="img" th:aria-label="#{report.byCategory}"></div>
+      </div>
+      <div class="col-12 col-lg-7">
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead>
+            <tr>
+              <th th:text="#{operation.category}">Категория</th>
+              <th class="text-end" th:text="#{operation.amount}">Сумма</th>
+              <th class="text-end">%</th>
+            </tr>
+            </thead>
+            <tbody>
+            <th:block th:each="row : ${breakdown.rows}">
+              <tr class="fw-semibold">
+                <td>
+                  <a class="text-body text-decoration-none" th:href="@{/operations(categoryId=${row.category.id},from=${from},to=${to})}"
+                     th:text="${row.category.icon} + ' ' + ${row.category.name}">🍽️ Еда</a>
+                </td>
+                <td class="text-end font-monospace text-nowrap" th:text="${@money.format(row.amount, baseCurrency)}">76,60 BYN</td>
+                <td class="text-end font-monospace text-body-secondary" th:text="${row.share}">25,2</td>
+              </tr>
+              <tr th:each="child : ${row.children}">
+                <td class="ps-4">
+                  <a class="text-body text-decoration-none" th:href="@{/operations(categoryId=${child.category.id},from=${from},to=${to})}"
+                     th:text="${child.category.name}">Продукты</a>
+                </td>
+                <td class="text-end font-monospace text-nowrap" th:text="${@money.format(child.amount, baseCurrency)}">62,10 BYN</td>
+                <td class="text-end font-monospace text-body-secondary" th:text="${child.share}">81,1</td>
+              </tr>
+              <tr th:if="${row.direct.signum() > 0 and !row.children.empty}">
+                <td class="ps-4 text-body-secondary" th:text="#{report.unspecified}">без уточнения</td>
+                <td class="text-end font-monospace text-nowrap text-body-secondary" th:text="${@money.format(row.direct, baseCurrency)}">0,00 BYN</td>
+                <td></td>
+              </tr>
+            </th:block>
+            </tbody>
+            <tfoot>
+            <tr>
+              <th th:text="#{operation.splitTotal}">Итого</th>
+              <th class="text-end font-monospace text-nowrap" th:text="${@money.format(breakdown.total, baseCurrency)}">304,30 BYN</th>
+              <th></th>
+            </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- денежный поток -->
+  <section class="mb-5" th:if="${hasCashFlow}">
+    <h2 class="h5" th:text="#{report.cashFlow}">Денежный поток</h2>
+    <p class="small text-body-secondary" th:text="#{report.cashFlowHint}">Откуда пришли деньги и куда ушли.</p>
+    <div class="chart chart-wide" th:attr="data-chart=${cashFlow},data-currency=${baseCurrency}"
+         role="img" th:aria-label="#{report.cashFlow}"></div>
+  </section>
+
+  <!-- динамика -->
+  <section>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+      <h2 class="h5 mb-0" th:text="#{report.trend}">Динамика за 12 месяцев</h2>
+      <form method="get" th:action="@{/reports}" class="d-flex gap-2">
+        <input type="hidden" name="from" th:value="${from}">
+        <input type="hidden" name="to" th:value="${to}">
+        <input type="hidden" name="kind" th:value="${kind}">
+        <select class="form-select form-select-sm" name="trendCategoryId" onchange="this.form.requestSubmit()"
+                th:attr="aria-label=#{operation.category}">
+          <option value="" th:text="#{report.allCategories}">Все категории</option>
+          <option th:each="c : ${trendCategories}" th:value="${c.id}" th:selected="${c.id == trendCategoryId}"
+                  th:text="${c.parentId == null} ? ${c.icon} + ' ' + ${c.name} : '— ' + ${c.name}">Еда</option>
+        </select>
+      </form>
+    </div>
+    <div class="chart chart-wide" th:attr="data-chart=${trend},data-currency=${baseCurrency}"
+         role="img" th:aria-label="#{report.trend}"></div>
+  </section>
+</main>
+</body>
+</html>

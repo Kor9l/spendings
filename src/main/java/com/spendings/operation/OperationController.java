@@ -12,6 +12,7 @@ import com.spendings.shared.Amounts;
 import com.spendings.shared.DomainException;
 import com.spendings.shared.Htmx;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -46,6 +47,7 @@ class OperationController {
   private final Categories categories;
   private final Currencies currencies;
   private final JsonMapper json;
+  private final OperationExport export;
 
   OperationController(
       Operations operations,
@@ -53,7 +55,9 @@ class OperationController {
       Accounts accounts,
       Categories categories,
       Currencies currencies,
-      JsonMapper json) {
+      JsonMapper json,
+      OperationExport export) {
+    this.export = export;
     this.operations = operations;
     this.feed = feed;
     this.accounts = accounts;
@@ -73,6 +77,7 @@ class OperationController {
       Model model) {
     model.addAttribute("feed", feed.page(filter.toFilter(), before));
     model.addAttribute("pageUrl", "/operations?" + queryWithoutBefore(request));
+    model.addAttribute("exportQuery", queryWithoutBefore(request));
     switch (htmxPart(request)) {
       case NEXT_PAGE -> {
         return "operation/feed :: days";
@@ -236,6 +241,31 @@ class OperationController {
     operations.delete(id);
     redirect.addFlashAttribute("toast", "Операция удалена");
     return "redirect:/operations";
+  }
+
+  // ---- выгрузка ----
+
+  @GetMapping("/operations/export.csv")
+  void exportCsv(@ModelAttribute("filter") FilterForm filter, HttpServletResponse response)
+      throws java.io.IOException {
+    attachment(response, "text/csv; charset=UTF-8", "csv");
+    export.csv(feed.export(filter.toFilter()), response.getOutputStream());
+  }
+
+  @GetMapping("/operations/export.xlsx")
+  void exportXlsx(@ModelAttribute("filter") FilterForm filter, HttpServletResponse response)
+      throws java.io.IOException {
+    attachment(
+        response, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xlsx");
+    export.xlsx(feed.export(filter.toFilter()), response.getOutputStream());
+  }
+
+  private static void attachment(
+      HttpServletResponse response, String contentType, String extension) {
+    response.setContentType(contentType);
+    response.setHeader(
+        "Content-Disposition",
+        "attachment; filename=\"spendings-" + LocalDate.now() + "." + extension + "\"");
   }
 
   // ---- подсказки для ввода ----

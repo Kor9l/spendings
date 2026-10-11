@@ -7,6 +7,8 @@ alpinejs = "3.17.4"
 bootstrap = "5.3.8"
 webjars-locator = "1.1.5"
 sortablejs = "1.15.7"
+echarts = "6.1.0"
+fastexcel = "0.20.2"
 spotless = "8.10.4"
 
 [libraries]
@@ -17,6 +19,8 @@ webjars-alpinejs = { module = "org.webjars.npm:alpinejs", version.ref = "alpinej
 webjars-bootstrap = { module = "org.webjars.npm:bootstrap", version.ref = "bootstrap" }
 webjars-locator = { module = "org.webjars:webjars-locator-lite", version.ref = "webjars-locator" }
 webjars-sortablejs = { module = "org.webjars.npm:sortablejs", version.ref = "sortablejs" }
+webjars-echarts = { module = "org.webjars.npm:echarts", version.ref = "echarts" }
+fastexcel = { module = "org.dhatim:fastexcel", version.ref = "fastexcel" }
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }

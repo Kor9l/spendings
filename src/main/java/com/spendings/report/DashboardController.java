@@ -1,47 +1,76 @@
 package com.spendings.report;
 
 import com.spendings.account.Accounts;
-import com.spendings.account.Accounts.AccountBalance;
+import com.spendings.category.CategoryKind;
 import com.spendings.fx.BaseCurrency;
 import com.spendings.operation.Feed;
 import com.spendings.operation.OperationFeed;
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.stream.Collectors;
+import com.spendings.report.ReportQueries.Totals;
+import java.time.LocalDate;
+import java.time.YearMonth;
 import org.jspecify.annotations.Nullable;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
 class DashboardController {
 
   private static final int RECENT_DAYS = 3;
+  private static final int TOP_CATEGORIES = 5;
 
   private final BaseCurrency baseCurrency;
   private final Accounts accounts;
   private final OperationFeed operations;
+  private final Reports reports;
   private final JdbcClient jdbc;
 
   DashboardController(
-      BaseCurrency baseCurrency, Accounts accounts, OperationFeed operations, JdbcClient jdbc) {
+      BaseCurrency baseCurrency,
+      Accounts accounts,
+      OperationFeed operations,
+      Reports reports,
+      JdbcClient jdbc) {
     this.baseCurrency = baseCurrency;
     this.accounts = accounts;
     this.operations = operations;
+    this.reports = reports;
     this.jdbc = jdbc;
   }
 
   @GetMapping("/")
-  String dashboard(Model model) {
-    List<AccountBalance> balances =
-        accounts.balances().stream().filter(b -> !b.account().archived()).toList();
-    model.addAttribute("baseCurrency", baseCurrency.code());
-    model.addAttribute("balances", balances);
-    model.addAttribute("totals", totalsByCurrency(balances));
-    // итоги в базовой валюте появятся вместе с курсами (M2); пока — по валютам
+  String dashboard(
+      @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM")
+          @Nullable YearMonth month,
+      Model model) {
+    String base = baseCurrency.code();
+    YearMonth current = month == null ? YearMonth.now() : month;
+    LocalDate from = current.atDay(1);
+    LocalDate to = current.atEndOfMonth();
+
+    Totals totals = reports.totals(from, to, base);
+    YearMonth previous = current.minusMonths(1);
+    Totals previousTotals = reports.totals(previous.atDay(1), previous.atEndOfMonth(), base);
+    Reports.Breakdown expenses = reports.breakdown(CategoryKind.EXPENSE, from, to, base);
+
+    model.addAttribute("baseCurrency", base);
+    model.addAttribute("month", current);
+    model.addAttribute("isCurrentMonth", current.equals(YearMonth.now()));
+    model.addAttribute("from", from);
+    model.addAttribute("to", to);
+    model.addAttribute("totals", totals);
+    model.addAttribute("savingsRate", Reports.savingsRate(totals).orElse(null));
+    model.addAttribute(
+        "expensesChange",
+        Reports.change(totals.expenses(), previousTotals.expenses()).orElse(null));
+    model.addAttribute("topExpenses", expenses.rows().stream().limit(TOP_CATEGORIES).toList());
+    model.addAttribute("netWorth", reports.netWorth(base));
+    model.addAttribute(
+        "balances", accounts.balances().stream().filter(b -> !b.account().archived()).toList());
+
     Feed recent = operations.page(Feed.Filter.none(), null, RECENT_DAYS);
     model.addAttribute("feed", new Feed(recent.days(), null));
     model.addAttribute("pageUrl", "/operations?");
@@ -53,15 +82,6 @@ class DashboardController {
   String systemStatus(Model model) {
     model.addAttribute("status", loadStatus());
     return "report/dashboard :: system-status";
-  }
-
-  private static Map<String, BigDecimal> totalsByCurrency(List<AccountBalance> balances) {
-    return balances.stream()
-        .collect(
-            Collectors.groupingBy(
-                b -> b.account().currency(),
-                TreeMap::new,
-                Collectors.reducing(BigDecimal.ZERO, AccountBalance::balance, BigDecimal::add)));
   }
 
   private SystemStatus loadStatus() {
@@ -76,8 +96,14 @@ class DashboardController {
             .query(String.class)
             .optional()
             .orElse(null);
-    return new SystemStatus(database, schema, Runtime.version().toString());
+    LocalDate lastRate =
+        jdbc.sql("select max(rate_date) from exchange_rate")
+            .query(LocalDate.class)
+            .optional()
+            .orElse(null);
+    return new SystemStatus(database, schema, Runtime.version().toString(), lastRate);
   }
 
-  record SystemStatus(String database, @Nullable String schemaVersion, String java) {}
+  record SystemStatus(
+      String database, @Nullable String schemaVersion, String java, @Nullable LocalDate lastRate) {}
 }

@@ -91,6 +91,62 @@ public class OperationFeed {
     return new Feed(feed.days(), dates.size() == days ? dates.getLast() : null);
   }
 
+  /** Все строки операций по фильтру, от старых к новым — для выгрузки в CSV и XLSX. */
+  public List<ExportRow> export(Feed.Filter filter) {
+    var where = new StringBuilder("o.status = 'CLEARED'");
+    var params = new HashMap<String, Object>();
+    applyFilter(filter, where, params);
+    Map<UUID, AccountRef> accountsById =
+        accounts.all().stream().collect(Collectors.toMap(AccountRef::id, a -> a));
+    Map<UUID, CategoryRef> categoriesById = categories.all();
+    return jdbc.sql(
+            """
+            select o.occurred_on, o.type, o.payee, o.note, l.account_id, l.category_id, l.amount,
+                   l.original_amount, l.original_currency, l.note as line_note
+            from operation o
+            join operation_line l on l.operation_id = o.id
+            where %s
+            order by o.occurred_on, o.created_at, o.id, l.position
+            """
+                .formatted(where))
+        .params(params)
+        .query(
+            (rs, i) -> {
+              AccountRef account = accountsById.get(rs.getObject("account_id", UUID.class));
+              CategoryRef category = categoriesById.get(rs.getObject("category_id", UUID.class));
+              String note = join(rs.getString("note"), rs.getString("line_note"));
+              return new ExportRow(
+                  rs.getObject("occurred_on", LocalDate.class),
+                  OperationType.valueOf(rs.getString("type")),
+                  account == null ? "?" : account.name(),
+                  account == null ? "?" : account.currency(),
+                  rs.getBigDecimal("amount"),
+                  category == null
+                      ? null
+                      : category.parentName() != null ? category.parentName() : category.name(),
+                  category == null || category.parentName() == null ? null : category.name(),
+                  rs.getString("payee"),
+                  note,
+                  rs.getBigDecimal("original_amount"),
+                  rs.getString("original_currency"));
+            })
+        .list();
+  }
+
+  /** Строка выгрузки: одна строка операции, сумма со знаком в валюте счёта. */
+  public record ExportRow(
+      LocalDate date,
+      OperationType type,
+      String account,
+      String currency,
+      BigDecimal amount,
+      @Nullable String category,
+      @Nullable String subcategory,
+      @Nullable String payee,
+      @Nullable String note,
+      @Nullable BigDecimal originalAmount,
+      @Nullable String originalCurrency) {}
+
   /** Подсказки получателя: недавние, где встречается введённый текст. */
   public List<String> payees(String query) {
     if (query.isBlank()) {
