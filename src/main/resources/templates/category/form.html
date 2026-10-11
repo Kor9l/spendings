@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head><title th:text="(${categoryId} == null ? #{category.new} : #{category.edit}) + ' · ' + #{app.name}">Категория</title></head>
+<body>
+<main class="container py-3 narrow-container">
+  <p class="small text-body-secondary mb-1">
+    <a th:href="@{/categories(kind=${form.kind})}" th:text="#{category.title}">Категории</a> ·
+    <span th:text="#{'category.kind.' + ${form.kind}}">Расходы</span>
+  </p>
+  <h1 class="h4 mb-3" th:text="${categoryId} == null ? #{category.new} : #{category.edit}">Новая категория</h1>
+
+  <form method="post" th:object="${form}" novalidate class="vstack gap-3"
+        th:action="${categoryId} == null ? @{/categories} : @{/categories/{id}(id=${categoryId})}">
+    <div class="alert alert-danger mb-0" th:if="${#fields.hasGlobalErrors()}">
+      <div th:each="error : ${#fields.globalErrors()}" th:text="${error}">Ошибка</div>
+    </div>
+    <input type="hidden" th:field="*{kind}">
+
+    <div>
+      <label class="form-label" for="name" th:text="#{category.name}">Название</label>
+      <input class="form-control" th:field="*{name}" th:errorclass="is-invalid" maxlength="60" required autofocus>
+      <div class="invalid-feedback" th:errors="*{name}"></div>
+    </div>
+
+    <div>
+      <label class="form-label" for="parentId" th:text="#{category.parent}">Входит в</label>
+      <select class="form-select" th:field="*{parentId}">
+        <option value="" th:text="#{category.parentNone}">Верхний уровень</option>
+        <option th:each="p : ${parents}" th:value="${p.id}" th:text="${p.icon} + ' ' + ${p.name}">Еда</option>
+      </select>
+    </div>
+
+    <div class="row g-2">
+      <div class="col-6">
+        <label class="form-label" for="icon" th:text="#{category.icon}">Иконка</label>
+        <input class="form-control" th:field="*{icon}" maxlength="16" placeholder="🛒">
+        <div class="form-text" th:text="#{category.iconHint}"></div>
+      </div>
+      <div class="col-6">
+        <label class="form-label" for="color" th:text="#{category.color}">Цвет</label>
+        <input class="form-control font-monospace" th:field="*{color}" th:errorclass="is-invalid" placeholder="#e07a5f" maxlength="7">
+        <div class="invalid-feedback" th:errors="*{color}"></div>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2">
+      <button class="btn btn-primary" type="submit" th:text="#{common.save}">Сохранить</button>
+      <a class="btn btn-link" th:href="@{/categories(kind=${form.kind})}" th:text="#{common.cancel}">Отмена</a>
+    </div>
+  </form>
+
+  <th:block th:if="${categoryId != null}">
+    <section class="mt-4 pt-3 border-top">
+      <h2 class="h6" th:text="#{category.merge}">Объединить</h2>
+      <p class="small text-body-secondary" th:text="#{category.mergeHint}">Все операции перейдут в выбранную категорию.</p>
+      <form class="d-flex gap-2" method="post" th:action="@{/categories/{id}/merge(id=${categoryId})}">
+        <select class="form-select" name="targetId" required th:attr="aria-label=#{category.mergeTarget}">
+          <option value="" th:text="#{category.mergeTarget}">С какой категорией объединить</option>
+          <option th:each="t : ${mergeTargets}" th:value="${t.id}" th:text="${t.displayName()}">Еда › Кафе</option>
+        </select>
+        <button class="btn btn-outline-primary" type="submit" th:text="#{category.merge}">Объединить</button>
+      </form>
+    </section>
+
+    <section class="mt-4 pt-3 border-top d-flex flex-wrap gap-2 align-items-center">
+      <form method="post" th:if="${!category.archived}" th:action="@{/categories/{id}/archive(id=${categoryId})}">
+        <button class="btn btn-outline-secondary" type="submit" th:text="#{common.archive}">В архив</button>
+      </form>
+      <form method="post" th:if="${category.archived}" th:action="@{/categories/{id}/restore(id=${categoryId})}">
+        <button class="btn btn-outline-secondary" type="submit" th:text="#{common.restore}">Вернуть</button>
+      </form>
+      <form method="post" th:action="@{/categories/{id}/delete(id=${categoryId})}" x-data="{ confirm: false }">
+        <button type="button" class="btn btn-outline-danger" x-show="!confirm" x-on:click="confirm = true" th:text="#{common.delete}">Удалить</button>
+        <span x-show="confirm" x-cloak class="d-inline-flex align-items-center gap-2">
+          <span th:text="#{common.deleteConfirm}">Точно удалить?</span>
+          <button type="submit" class="btn btn-danger btn-sm" th:text="#{common.yes}">Да, удалить</button>
+          <button type="button" class="btn btn-link btn-sm" x-on:click="confirm = false" th:text="#{common.cancel}">Отмена</button>
+        </span>
+      </form>
+      <p class="small text-body-secondary w-100 mb-0" th:text="#{category.deleteHint}">Удалить можно только категорию без операций.</p>
+    </section>
+  </th:block>
+</main>
+</body>
+</html>

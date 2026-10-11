@@ -6,6 +6,7 @@ htmx = "2.0.11"
 alpinejs = "3.17.4"
 bootstrap = "5.3.8"
 webjars-locator = "1.1.5"
+sortablejs = "1.15.7"
 spotless = "8.10.4"
 
 [libraries]
@@ -15,6 +16,7 @@ webjars-htmx = { module = "org.webjars.npm:htmx.org", version.ref = "htmx" }
 webjars-alpinejs = { module = "org.webjars.npm:alpinejs", version.ref = "alpinejs" }
 webjars-bootstrap = { module = "org.webjars.npm:bootstrap", version.ref = "bootstrap" }
 webjars-locator = { module = "org.webjars:webjars-locator-lite", version.ref = "webjars-locator" }
+webjars-sortablejs = { module = "org.webjars.npm:sortablejs", version.ref = "sortablejs" }
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }

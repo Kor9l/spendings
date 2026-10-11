@@ -38,6 +38,7 @@ dependencies {
     implementation(libs.webjars.htmx)
     implementation(libs.webjars.alpinejs)
     implementation(libs.webjars.bootstrap)
+    implementation(libs.webjars.sortablejs)
     implementation(libs.webjars.locator)
 
     runtimeOnly(libs.postgresql)

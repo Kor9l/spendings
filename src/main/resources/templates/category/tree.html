@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head><title th:text="#{category.title} + ' · ' + #{app.name}">Категории</title></head>
+<body>
+<main class="container py-3 narrow-container">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h4 mb-0" th:text="#{category.title}">Категории</h1>
+    <a class="btn btn-primary btn-sm" th:href="@{/categories/new(kind=${kind})}" th:text="'+ ' + #{category.new}">+ Новая категория</a>
+  </div>
+
+  <ul class="nav nav-tabs mb-3">
+    <li class="nav-item" th:each="k : ${T(com.spendings.category.CategoryKind).values()}">
+      <a class="nav-link" th:classappend="${k == kind} ? 'active'" th:href="@{/categories(kind=${k})}"
+         th:text="#{'category.kind.' + ${k}}">Расходы</a>
+    </li>
+  </ul>
+
+  <ul class="list-group" data-sortable="/categories/reorder" data-handle="[data-drag-top]">
+    <li class="list-group-item" th:each="node : ${tree}" th:attr="data-id=${node.category.id}"
+        th:classappend="${node.category.archived} ? 'text-body-secondary'">
+      <div class="d-flex align-items-center gap-3">
+        <span class="drag-handle text-body-secondary" data-drag-top aria-hidden="true">⋮⋮</span>
+        <span class="cat-icon" th:style="'--cat-color:' + ${node.category.color}" th:text="${node.category.icon}">🍽️</span>
+        <span class="flex-grow-1 fw-semibold" th:text="${node.category.name}">Еда</span>
+        <span class="badge text-bg-secondary" th:if="${node.category.archived}" th:text="#{common.archived}">В архиве</span>
+        <a class="btn btn-sm btn-link" th:unless="${node.category.archived}"
+           th:href="@{/categories/new(kind=${kind},parentId=${node.category.id})}" th:text="'+ ' + #{category.newSub}">+ Подкатегория</a>
+        <a class="btn btn-sm btn-link" th:href="@{/categories/{id}/edit(id=${node.category.id})}" th:text="#{common.edit}">Изменить</a>
+      </div>
+      <ul class="list-unstyled ms-5 mt-2 mb-0 vstack gap-1" th:unless="${node.children.empty}"
+          data-sortable="/categories/reorder" data-handle="[data-drag-child]">
+        <li class="d-flex align-items-center gap-2" th:each="sub : ${node.children}" th:attr="data-id=${sub.id}"
+            th:classappend="${sub.archived} ? 'text-body-secondary'">
+          <span class="drag-handle text-body-secondary small" data-drag-child aria-hidden="true">⋮⋮</span>
+          <span class="flex-grow-1" th:text="${sub.name}">Кафе</span>
+          <span class="badge text-bg-secondary" th:if="${sub.archived}" th:text="#{common.archived}">В архиве</span>
+          <a class="btn btn-sm btn-link py-0" th:href="@{/categories/{id}/edit(id=${sub.id})}" th:text="#{common.edit}">Изменить</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+  <p class="small text-body-secondary mt-2" th:text="#{category.dragHint}">Порядок меняется перетаскиванием.</p>
+</main>
+</body>
+</html>

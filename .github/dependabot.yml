@@ -7,6 +7,10 @@ updates:
     groups:
       spring:
         patterns: ["org.springframework*"]
+    ignore:
+      # htmx 4 несовместим с 2.x по атрибутам и событиям — переходим отдельной задачей
+      - dependency-name: "org.webjars.npm:htmx.org"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:

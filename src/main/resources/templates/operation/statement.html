@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head><title th:text="${account.name} + ' · ' + #{app.name}">Счёт</title></head>
+<body>
+<main class="container py-3">
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+    <div>
+      <p class="small text-body-secondary mb-1">
+        <a th:href="@{/accounts}" th:text="#{account.list.title}">Счета</a> ·
+        <span th:text="#{${account.type.labelKey()}}">Карта</span>
+        <span class="badge text-bg-secondary ms-1" th:if="${account.archived}" th:text="#{common.archived}">В архиве</span>
+      </p>
+      <h1 class="h4 mb-1" th:text="${account.icon} + ' ' + ${account.name}">💳 Карта</h1>
+      <p class="display-6 font-monospace mb-0" th:classappend="${balance.signum() < 0} ? 'amount-negative'"
+         th:text="${@money.format(balance, account.currency)}">1 200,00 BYN</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-primary btn-sm" th:href="@{/quick(accountId=${account.id})}" th:text="'+ ' + #{nav.add}">+ Добавить</a>
+      <a class="btn btn-outline-secondary btn-sm" th:href="@{/accounts/{id}/edit(id=${account.id})}" th:text="#{common.edit}">Изменить</a>
+    </div>
+  </div>
+
+  <div class="card mb-3" x-data="{ open: false }">
+    <div class="card-body py-2">
+      <button type="button" class="btn btn-link p-0" x-on:click="open = !open" th:text="#{account.reconcile}">Сверить остаток</button>
+      <form class="row g-2 align-items-end mt-1" x-show="open" x-cloak method="post"
+            th:action="@{/accounts/{id}/reconcile(id=${account.id})}">
+        <p class="small text-body-secondary mb-1" th:text="#{account.reconcileHint}">Введите фактический остаток.</p>
+        <div class="col">
+          <label class="form-label small" for="actualBalance" th:text="#{account.actualBalance}">Фактический остаток</label>
+          <div class="input-group">
+            <input class="form-control" id="actualBalance" name="actualBalance" inputmode="decimal" required
+                   th:value="${@money.input(balance)}">
+            <span class="input-group-text" th:text="${account.currency}">BYN</span>
+          </div>
+        </div>
+        <div class="col-auto">
+          <button class="btn btn-primary" type="submit" th:text="#{common.save}">Сохранить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <p class="text-body-secondary py-4 text-center" th:if="${feed.empty}" th:text="#{operation.feed.empty}">Операций пока нет.</p>
+  <th:block th:replace="~{operation/feed :: days}"></th:block>
+</main>
+</body>
+</html>
