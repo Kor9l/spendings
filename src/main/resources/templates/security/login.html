@@ -24,6 +24,12 @@
     </div>
     <button class="btn btn-primary btn-lg" type="submit" th:text="#{login.submit}">Войти</button>
   </form>
+
+  <div class="mt-4 vstack gap-2 d-none" data-passkey-login-block>
+    <div class="text-center small text-body-secondary" th:text="#{login.or}">или</div>
+    <button class="btn btn-outline-primary btn-lg" type="button" data-passkey-login th:text="#{login.passkey}">Войти по ключу</button>
+    <div class="small text-danger text-center" data-passkey-error></div>
+  </div>
 </main>
 </body>
 </html>

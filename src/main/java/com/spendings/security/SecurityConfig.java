@@ -4,11 +4,13 @@ import com.spendings.shared.Htmx;
 import jakarta.servlet.http.HttpServletResponse;
 import java.security.SecureRandom;
 import java.util.HexFormat;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
@@ -16,6 +18,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.util.matcher.RequestHeaderRequestMatcher;
+import org.springframework.security.web.webauthn.management.JdbcPublicKeyCredentialUserEntityRepository;
+import org.springframework.security.web.webauthn.management.JdbcUserCredentialRepository;
+import org.springframework.security.web.webauthn.management.PublicKeyCredentialUserEntityRepository;
+import org.springframework.security.web.webauthn.management.UserCredentialRepository;
 
 @Configuration
 @EnableWebSecurity
@@ -28,7 +34,9 @@ class SecurityConfig {
   SecurityFilterChain securityFilterChain(
       HttpSecurity http,
       OwnerAccount owner,
-      @Value("${spendings.security.remember-me-key:}") String rememberMeKey)
+      @Value("${spendings.security.remember-me-key:}") String rememberMeKey,
+      @Value("${spendings.security.webauthn.rp-id}") String rpId,
+      @Value("${spendings.security.webauthn.allowed-origins}") Set<String> allowedOrigins)
       throws Exception {
     http.authorizeHttpRequests(
             auth ->
@@ -40,11 +48,24 @@ class SecurityConfig {
                         "/css/**",
                         "/js/**",
                         "/webjars/**",
-                        "/favicon.svg")
+                        "/favicon.svg",
+                        "/icons/**",
+                        "/manifest.webmanifest",
+                        "/sw.js",
+                        "/offline.html")
                     .permitAll()
                     .anyRequest()
                     .authenticated())
         .formLogin(form -> form.loginPage("/login").defaultSuccessUrl("/", true).permitAll())
+        // passkeys: свои страницы входа и управления ключами, стандартную страницу регистрации —
+        // нет
+        .webAuthn(
+            webAuthn ->
+                webAuthn
+                    .rpName("Spendings")
+                    .rpId(rpId)
+                    .allowedOrigins(allowedOrigins)
+                    .disableDefaultRegistrationPage(true))
         .rememberMe(
             remember ->
                 remember
@@ -65,6 +86,16 @@ class SecurityConfig {
         .addFilterBefore(
             new SetupRequiredFilter(owner), UsernamePasswordAuthenticationFilter.class);
     return http.build();
+  }
+
+  @Bean
+  PublicKeyCredentialUserEntityRepository webAuthnUsers(JdbcOperations jdbc) {
+    return new JdbcPublicKeyCredentialUserEntityRepository(jdbc);
+  }
+
+  @Bean
+  UserCredentialRepository webAuthnCredentials(JdbcOperations jdbc) {
+    return new JdbcUserCredentialRepository(jdbc);
   }
 
   @Bean

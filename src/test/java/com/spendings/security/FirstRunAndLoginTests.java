@@ -38,6 +38,10 @@ class FirstRunAndLoginTests {
     assertThat(mvc.get().uri("/")).hasStatus3xxRedirection().hasRedirectedUrl("/setup");
     assertThat(mvc.get().uri("/login")).hasStatus3xxRedirection().hasRedirectedUrl("/setup");
     assertThat(mvc.get().uri("/setup")).hasStatusOk().bodyText().contains("Первый запуск");
+    // PWA ставится и с экрана первого запуска
+    assertThat(mvc.get().uri("/manifest.webmanifest")).hasStatusOk();
+    assertThat(mvc.get().uri("/sw.js")).hasStatusOk();
+    assertThat(mvc.get().uri("/icons/icon-192.png")).hasStatusOk();
   }
 
   @Test

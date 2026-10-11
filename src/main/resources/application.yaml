@@ -22,6 +22,10 @@ spring:
       lifecycle-management: start-only   # при остановке приложения база продолжает работать
 
 server:
+  # за Caddy: схема и адрес клиента — из X-Forwarded-* (доверяются только частные сети)
+  forward-headers-strategy: native
+  mime-mappings:
+    webmanifest: application/manifest+json
   servlet:
     session:
       cookie:
@@ -37,6 +41,10 @@ spendings:
   security:
     # Задайте в продакшене (openssl rand -hex 32), иначе после перезапуска remember-me сбрасывается
     remember-me-key: ${SPENDINGS_REMEMBER_ME_KEY:}
+    webauthn:
+      # Passkey привязан к домену: в продакшене — домен, по которому открывают приложение
+      rp-id: ${SPENDINGS_RP_ID:localhost}
+      allowed-origins: ${SPENDINGS_ORIGIN:http://localhost:8080}
   fx:
     nbrb:
       base-url: https://api.nbrb.by

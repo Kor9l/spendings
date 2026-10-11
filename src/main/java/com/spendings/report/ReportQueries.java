@@ -132,12 +132,21 @@ class ReportQueries {
               select (date_trunc('month', m) + interval '1 month - 1 day')::date as month_end
               from generate_series(cast(:first as date), cast(:last as date), interval '1 month') m
             ),
+            -- движения по счетам один раз: сумма за месяц, потом нарастающим итогом
+            monthly as materialized (
+              select l.account_id,
+                     (date_trunc('month', o.occurred_on) + interval '1 month - 1 day')::date as month_end,
+                     sum(l.amount) as amount
+              from operation_line l
+              join operation o on o.id = l.operation_id
+              where o.status = 'CLEARED'
+              group by 1, 2
+            ),
             balances as (
               select m.month_end, a.type, a.currency,
                      a.opening_balance + coalesce((
-                       select sum(l.amount) from operation_line l
-                       join operation o on o.id = l.operation_id
-                       where l.account_id = a.id and o.status = 'CLEARED' and o.occurred_on <= m.month_end
+                       select sum(x.amount) from monthly x
+                       where x.account_id = a.id and x.month_end <= m.month_end
                      ), 0) as balance
               from months m
               join account a on a.in_net_worth and a.opened_on <= m.month_end

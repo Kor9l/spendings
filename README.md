@@ -22,12 +22,9 @@ docker compose --profile app up --build
 
 Откройте http://localhost:8080. При первом запуске мастер попросит создать учётную запись владельца.
 
-Для постоянной установки задайте в `.env` ключ remember-me (`openssl rand -hex 32`) и пароль базы:
+Установка на свой сервер с HTTPS (Tailscale или Caddy), бэкапами и восстановлением — [docs/03-deploy.md](docs/03-deploy.md). Коротко: `cp .env.example .env`, заполнить, `docker compose --profile app up -d --build`.
 
-```
-SPENDINGS_REMEMBER_ME_KEY=...
-POSTGRES_PASSWORD=...
-```
+Демо-данные в пустую базу: `SPENDINGS_DEMO_OPERATIONS=50000 ./gradlew bootRun`.
 
 ## Проверки
 
@@ -35,4 +32,4 @@ POSTGRES_PASSWORD=...
 ./gradlew check
 ```
 
-Запускает форматирование (Spotless, `./gradlew spotlessApply` исправляет), тесты на PostgreSQL в Testcontainers и проверку границ модулей Spring Modulith.
+Запускает форматирование (Spotless, `./gradlew spotlessApply` исправляет), тесты на PostgreSQL в Testcontainers и проверку границ модулей Spring Modulith. Скорость на 50 тысячах операций — `./gradlew perfTest`.

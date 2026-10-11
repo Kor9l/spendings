@@ -36,8 +36,9 @@ class LedgerTotals implements AccountMovements, CategoryUsage, RateDemand {
             """
             select l.account_id, sum(l.amount) as total
             from operation_line l
-            join operation o on o.id = l.operation_id
-            where o.status = 'CLEARED'
+            -- «на проверке» мало, и для них есть частичный индекс: так быстрее, чем join со всеми
+            where not exists (
+              select 1 from operation o where o.id = l.operation_id and o.status = 'REVIEW')
             group by l.account_id
             """)
         .query(

@@ -7,6 +7,12 @@
   <meta name="_csrf_header" th:if="${_csrf != null}" th:content="${_csrf.headerName}">
   <title th:replace="${title}">Spendings</title>
   <link rel="icon" th:href="@{/favicon.svg}" type="image/svg+xml">
+  <link rel="manifest" th:href="@{/manifest.webmanifest}">
+  <link rel="apple-touch-icon" th:href="@{/icons/apple-touch-icon.png}">
+  <meta name="theme-color" content="#0d6870">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Spendings">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="stylesheet" th:href="@{/webjars/bootstrap/dist/css/bootstrap.min.css}">
   <link rel="stylesheet" th:href="@{/css/app.css}">
   <script th:src="@{/js/theme.js}"></script>
@@ -17,6 +23,7 @@
   <script defer th:src="@{/js/app.js}"></script>
   <script defer th:src="@{/js/charts.js}"></script>
   <script defer th:src="@{/js/operation-form.js}"></script>
+  <script defer th:src="@{/js/passkeys.js}"></script>
   <script defer th:src="@{/webjars/alpinejs/dist/cdn.min.js}"></script>
 </head>
 <body hx-boost="true">

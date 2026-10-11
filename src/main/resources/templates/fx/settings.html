@@ -47,6 +47,10 @@
   </section>
 
   <section class="mb-5">
+    <h2 class="h5" th:text="#{passkey.title}">Ключи входа</h2>
+    <p class="small text-body-secondary" th:text="#{passkey.lead}">Вход по отпечатку, Face ID или PIN — без пароля.</p>
+    <a class="btn btn-outline-primary mb-4" th:href="@{/settings/passkeys}" th:text="#{passkey.manage}">Управлять ключами</a>
+
     <h2 class="h5" th:text="#{backup.title}">Бэкап</h2>
     <p class="small text-body-secondary" th:text="#{backup.hint}">Все данные одним файлом.</p>
     <a class="btn btn-outline-primary mb-3" th:href="@{/settings/backup.json}" hx-boost="false" th:text="#{backup.download}">Скачать бэкап</a>

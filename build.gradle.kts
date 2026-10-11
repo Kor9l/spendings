@@ -28,6 +28,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
     implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("org.springframework.security:spring-security-webauthn")  // passkeys
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-flyway")
     implementation("org.springframework.boot:spring-boot-starter-validation")
@@ -61,7 +62,18 @@ dependencies {
 }
 
 tasks.test {
-    useJUnitPlatform()
+    useJUnitPlatform { excludeTags("perf") }
+}
+
+// Скорость на 50 тысячах операций: ./gradlew perfTest
+tasks.register<Test>("perfTest") {
+    description = "Проверка скорости страниц на большом объёме данных."
+    group = "verification"
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    useJUnitPlatform { includeTags("perf") }
+    testLogging { showStandardStreams = true }
+    outputs.upToDateWhen { false }
 }
 
 tasks.bootJar {
