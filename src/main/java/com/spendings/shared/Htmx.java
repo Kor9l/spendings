@@ -21,7 +21,7 @@ public final class Htmx {
     response.setHeader(TRIGGER, toastEvent(level, message));
   }
 
-  static String toastEvent(ToastLevel level, String message) {
+  public static String toastEvent(ToastLevel level, String message) {
     return "{\"toast\":{\"level\":\""
         + level.cssClass()
         + "\",\"message\":\""

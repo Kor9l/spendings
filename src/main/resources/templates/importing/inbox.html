@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head><title th:text="#{nav.inbox} + ' · ' + #{app.name}">Входящие</title></head>
+<body>
+<main class="container py-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h1 class="h4 mb-0" th:text="#{nav.inbox}">Входящие</h1>
+    <a class="btn btn-outline-primary btn-sm" th:href="@{/import}" th:text="#{import.title}">Импорт</a>
+  </div>
+  <p class="small text-body-secondary" th:text="#{inbox.hint}">Импортированные операции не входят в остатки, пока вы их не подтвердите.</p>
+
+  <div id="inbox-list" th:fragment="list">
+    <p class="text-body-secondary py-4 text-center" th:if="${groups.empty}" th:text="#{inbox.empty}">Входящих нет.</p>
+    <section class="mb-4" th:each="group : ${groups}">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="small text-body-secondary" th:text="#{inbox.batch(${group.value.size()})}">Импорт · 20 операций</span>
+        <form method="post" th:action="@{/inbox/batches/{id}/confirm(id=${group.key})}">
+          <button class="btn btn-sm btn-success" type="submit" th:text="#{inbox.confirmAll}">Подтвердить все</button>
+        </form>
+      </div>
+      <ul class="list-group">
+        <li class="list-group-item inbox-row" th:each="r : ${group.value}">
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            <span class="small text-body-secondary text-nowrap" th:text="${#temporals.format(r.item.date, 'dd.MM')}">03.10</span>
+            <span class="flex-grow-1 min-w-0">
+              <span class="d-block text-truncate" th:text="${r.item.payee} ?: #{common.none}">Евроопт</span>
+              <span class="small text-body-secondary" th:text="${r.account != null} ? ${r.account.name} : ''">Карта</span>
+            </span>
+            <span class="font-monospace text-nowrap" th:classappend="${r.item.amount.signum() > 0} ? 'amount-positive'"
+                  th:text="${@money.signed(r.item.amount, r.account != null ? r.account.currency : '')}">−62,10 BYN</span>
+          </div>
+          <div class="d-flex flex-wrap align-items-center gap-2 mt-2" th:if="${r.item.lines == 1}">
+            <select class="form-select form-select-sm w-auto flex-grow-1" name="categoryId"
+                    th:classappend="${r.uncategorized()} ? 'border-warning'"
+                    th:hx-post="@{/inbox/{id}/category(id=${r.item.id})}" hx-trigger="change"
+                    hx-include="closest .inbox-row" hx-target="#inbox-list" hx-swap="outerHTML"
+                    th:attr="aria-label=#{operation.category}">
+              <option th:each="c : ${r.item.type.name() == 'INCOME' ? incomeOptions : expenseOptions}"
+                      th:value="${c.id}" th:selected="${r.category != null and c.id == r.category.id}"
+                      th:text="${c.parentId == null} ? ${c.icon} + ' ' + ${c.name} : '— ' + ${c.name}">Еда</option>
+            </select>
+            <div class="form-check form-check-inline small mb-0" th:if="${r.item.payee != null}">
+              <input class="form-check-input" type="checkbox" name="remember" value="true" th:id="${'remember-' + r.item.id}" checked>
+              <label class="form-check-label" th:for="${'remember-' + r.item.id}" th:text="#{inbox.remember}">запомнить для получателя</label>
+            </div>
+            <button class="btn btn-sm btn-outline-success" type="button" th:hx-post="@{/inbox/{id}/confirm(id=${r.item.id})}"
+                    hx-target="#inbox-list" hx-swap="outerHTML" th:attr="aria-label=#{inbox.confirm}" th:text="'✓ ' + #{inbox.confirm}">✓ Подтвердить</button>
+            <button class="btn btn-sm btn-outline-danger" type="button" th:hx-post="@{/inbox/{id}/delete(id=${r.item.id})}"
+                    hx-target="#inbox-list" hx-swap="outerHTML" th:attr="aria-label=#{common.delete}">×</button>
+          </div>
+        </li>
+      </ul>
+    </section>
+  </div>
+</main>
+</body>
+</html>

@@ -69,6 +69,76 @@ public class Operations {
     operations.flush();
   }
 
+  /**
+   * Операция из выписки: со статусом «на проверке», в остатки и отчёты не входит до подтверждения.
+   */
+  public UUID recordImported(RecordOperation command, UUID batchId, String externalKey) {
+    Plan plan = plan(command, null);
+    var operation =
+        new Operation(
+            plan.type(), command.date(), plan.payee(), text(command.note()), plan.lines());
+    operation.markImported(batchId, externalKey);
+    return operations.saveAndFlush(operation).id();
+  }
+
+  public void confirm(UUID id) {
+    load(id).confirm();
+    operations.flush();
+  }
+
+  /** Подтверждает всё, что лежит во «Входящих» из этой партии; возвращает сколько. */
+  public int confirmBatch(UUID batchId) {
+    int count = 0;
+    for (Operation op : operations.findByImportId(batchId)) {
+      if (op.inReview()) {
+        op.confirm();
+        count++;
+      }
+    }
+    operations.flush();
+    return count;
+  }
+
+  /** Удаляет все операции партии, в том числе уже подтверждённые; возвращает сколько. */
+  public int deleteBatch(UUID batchId) {
+    List<Operation> batch = operations.findByImportId(batchId);
+    operations.deleteAll(batch);
+    operations.flush();
+    return batch.size();
+  }
+
+  /** Меняет категорию расхода или дохода из одной строки — для разбора «Входящих». */
+  public void recategorize(UUID id, UUID categoryId) {
+    Operation op = load(id);
+    Recorded recorded = find(id);
+    RecordOperation changed =
+        switch (recorded.command()) {
+          case RecordExpense e when e.splits().size() == 1 ->
+              new RecordExpense(
+                  e.accountId(),
+                  e.date(),
+                  List.of(withCategory(e.splits().getFirst(), categoryId)),
+                  e.payee(),
+                  e.note());
+          case RecordIncome i when i.splits().size() == 1 ->
+              new RecordIncome(
+                  i.accountId(),
+                  i.date(),
+                  List.of(withCategory(i.splits().getFirst(), categoryId)),
+                  i.payee(),
+                  i.note());
+          default -> throw new DomainException("operation.error.cannotRecategorize");
+        };
+    Plan plan = plan(changed, op);
+    op.replace(plan.type(), changed.date(), plan.payee(), text(changed.note()), plan.lines());
+    operations.flush();
+  }
+
+  private static Split withCategory(Split split, UUID categoryId) {
+    return new Split(
+        categoryId, split.amount(), split.originalAmount(), split.originalCurrency(), split.note());
+  }
+
   public void delete(UUID id) {
     operations.delete(load(id));
   }

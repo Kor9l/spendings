@@ -42,6 +42,7 @@ dependencies {
     implementation(libs.webjars.sortablejs)
     implementation(libs.webjars.echarts)
     implementation(libs.fastexcel)
+    implementation(libs.fastexcel.reader)
     implementation(libs.webjars.locator)
 
     runtimeOnly(libs.postgresql)
