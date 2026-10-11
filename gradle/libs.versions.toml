@@ -2,7 +2,7 @@
 spring-boot = "4.1.1"
 spring-modulith = "2.1.1"
 postgresql = "42.7.14"      # выше версии из Boot 4.1.1 (42.7.13): закрыты две CVE
-htmx = "2.0.11"
+htmx = "4.0.0"
 alpinejs = "3.17.4"
 bootstrap = "5.3.8"
 webjars-locator = "1.1.5"
