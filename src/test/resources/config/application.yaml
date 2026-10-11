@@ -3,3 +3,6 @@ spendings:
   fx:
     sync:
       enabled: false   # в тестах нет доступа к НБРБ; курсы кладут сами тесты
+  planning:
+    autopost:
+      enabled: false   # в тестах проводим вызовом напрямую
