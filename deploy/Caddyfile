@@ -1,0 +1,12 @@
+# HTTPS-сертификат Let's Encrypt выпускается автоматически: домен должен указывать на этот сервер,
+# порты 80 и 443 — открыты.
+{$SPENDINGS_DOMAIN} {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy same-origin
+		-Server
+	}
+	reverse_proxy app:8080
+}

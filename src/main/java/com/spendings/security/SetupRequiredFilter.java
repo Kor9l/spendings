@@ -15,7 +15,17 @@ final class SetupRequiredFilter extends OncePerRequestFilter {
   static final String SETUP_PATH = "/setup";
 
   private static final List<String> ALWAYS_OPEN =
-      List.of("/css/", "/js/", "/webjars/", "/favicon.svg", "/actuator/health", "/error");
+      List.of(
+          "/css/",
+          "/js/",
+          "/webjars/",
+          "/icons/",
+          "/favicon.svg",
+          "/manifest.webmanifest",
+          "/sw.js",
+          "/offline.html",
+          "/actuator/health",
+          "/error");
 
   private final OwnerAccount owner;
 

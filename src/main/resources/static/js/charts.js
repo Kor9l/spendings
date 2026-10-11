@@ -25,7 +25,7 @@
       const axis = { axisLabel: { color: css('--bs-secondary-color') }, axisLine: { lineStyle: { color: css('--bs-border-color') } } };
       return {
         tooltip: { trigger: 'axis', valueFormatter: (v) => money(v, currency) },
-        legend: { textStyle: { color: css('--bs-body-color') } },
+        legend: { top: 0, textStyle: { color: css('--bs-body-color') } },
         grid: { left: 8, right: 8, top: 36, bottom: 8, containLabel: true },
         xAxis: { type: 'category', data: data.months.map((m) => m.slice(5) + '.' + m.slice(2, 4)), ...axis },
         yAxis: {
@@ -45,7 +45,7 @@
       const axis = { axisLabel: { color: css('--bs-secondary-color') }, axisLine: { lineStyle: { color: css('--bs-border-color') } } };
       return {
         tooltip: { trigger: 'axis', valueFormatter: (v) => money(v, currency) },
-        legend: { textStyle: { color: css('--bs-body-color') } },
+        legend: { top: 0, textStyle: { color: css('--bs-body-color') } },
         grid: { left: 8, right: 8, top: 36, bottom: 8, containLabel: true },
         xAxis: { type: 'category', boundaryGap: false, data: data.months.map((m) => m.slice(5) + '.' + m.slice(2, 4)), ...axis },
         yAxis: {
@@ -65,7 +65,7 @@
       const axis = { axisLabel: { color: css('--bs-secondary-color') }, axisLine: { lineStyle: { color: css('--bs-border-color') } } };
       return {
         tooltip: { trigger: 'axis', valueFormatter: (v) => money(v, currency) },
-        legend: { textStyle: { color: css('--bs-body-color') } },
+        legend: { top: 0, textStyle: { color: css('--bs-body-color') } },
         grid: { left: 8, right: 8, top: 36, bottom: 8, containLabel: true },
         xAxis: { type: 'category', data: data.months, ...axis },
         yAxis: {

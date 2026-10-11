@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head><title th:text="#{passkey.title} + ' · ' + #{app.name}">Ключи входа</title></head>
+<body>
+<main class="container py-3 narrow-container">
+  <p class="small text-body-secondary mb-1"><a th:href="@{/settings}" th:text="#{nav.settings}">Настройки</a></p>
+  <h1 class="h4 mb-2" th:text="#{passkey.title}">Ключи входа</h1>
+  <p class="text-body-secondary" th:text="#{passkey.lead}">Вход по отпечатку, Face ID или PIN телефона — без пароля.</p>
+
+  <div class="alert alert-warning d-none" data-passkey-unsupported th:text="#{passkey.unsupported}">Браузер не поддерживает passkeys.</div>
+
+  <form class="row g-2 align-items-end mb-4" data-passkey-register>
+    <div class="col-sm-8">
+      <label class="form-label" for="passkey-label" th:text="#{passkey.label}">Название</label>
+      <input class="form-control" id="passkey-label" name="label" maxlength="100" required
+             th:placeholder="#{passkey.labelPlaceholder}">
+    </div>
+    <div class="col-sm-4 d-grid">
+      <button class="btn btn-primary" type="submit" th:text="#{passkey.add}">Добавить ключ</button>
+    </div>
+    <div class="col-12 small text-danger" data-passkey-error></div>
+  </form>
+
+  <p class="text-body-secondary" th:if="${passkeys.empty}" th:text="#{passkey.empty}">Ключей пока нет.</p>
+  <ul class="list-group" th:unless="${passkeys.empty}">
+    <li class="list-group-item d-flex align-items-center gap-3" th:each="p : ${passkeys}">
+      <span class="fs-4" aria-hidden="true">🔑</span>
+      <span class="flex-grow-1 min-w-0">
+        <span class="d-block text-truncate fw-semibold" th:text="${p.label}">iPhone</span>
+        <span class="small text-body-secondary"
+              th:text="#{passkey.added(${p.created != null ? #temporals.format(p.created, 'd MMMM yyyy') : '—'})} + (${p.lastUsed != null} ? ' · ' + #{passkey.lastUsed(${#temporals.format(p.lastUsed, 'd MMMM yyyy')})} : '') + (${p.synced} ? ' · ' + #{passkey.synced} : '')">добавлен 11 октября 2026</span>
+      </span>
+      <form method="post" th:action="@{/settings/passkeys/delete}" x-data="{ confirm: false }">
+        <input type="hidden" name="id" th:value="${p.id}">
+        <button type="button" class="btn btn-sm btn-outline-danger" x-show="!confirm" x-on:click="confirm = true" th:text="#{common.delete}">Удалить</button>
+        <button type="submit" class="btn btn-sm btn-danger" x-show="confirm" x-cloak th:text="#{common.yes}">Да, удалить</button>
+      </form>
+    </li>
+  </ul>
+  <p class="small text-body-secondary mt-3" th:text="#{passkey.hint}">Пароль продолжает работать.</p>
+</main>
+</body>
+</html>

@@ -5,3 +5,5 @@ build
 docs
 *.iml
 .env
+backups
+deploy

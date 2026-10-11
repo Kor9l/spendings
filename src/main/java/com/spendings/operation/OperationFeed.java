@@ -31,6 +31,9 @@ public class OperationFeed {
 
   static final int DAYS_PER_PAGE = 10;
 
+  /** Больше операций на страницу не грузим: дальше — подгрузка при прокрутке. */
+  static final int MAX_ROWS = 300;
+
   private final JdbcClient jdbc;
   private final Accounts accounts;
   private final Categories categories;
@@ -56,17 +59,28 @@ public class OperationFeed {
     }
 
     params.put("days", days);
-    List<LocalDate> dates =
+    List<DayCount> counts =
         jdbc.sql(
-                "select distinct o.occurred_on from operation o where "
+                "select o.occurred_on, count(*) as n from operation o where "
                     + where
-                    + " order by o.occurred_on desc limit :days")
+                    + " group by o.occurred_on order by o.occurred_on desc limit :days")
             .params(params)
-            .query(LocalDate.class)
+            .query((rs, i) -> new DayCount(rs.getObject(1, LocalDate.class), rs.getInt(2)))
             .list();
-    if (dates.isEmpty()) {
+    if (counts.isEmpty()) {
       return new Feed(List.of(), null);
     }
+    // страница — до days дней, но не больше MAX_ROWS операций (хотя бы один день целиком)
+    List<LocalDate> dates = new ArrayList<>();
+    int total = 0;
+    for (DayCount c : counts) {
+      if (!dates.isEmpty() && total + c.count() > MAX_ROWS) {
+        break;
+      }
+      dates.add(c.day());
+      total += c.count();
+    }
+    boolean more = dates.size() < counts.size() || counts.size() == days;
 
     params.put("newest", dates.getFirst());
     params.put("oldest", dates.getLast());
@@ -88,8 +102,10 @@ public class OperationFeed {
     Map<UUID, BigDecimal> balances =
         filter.accountId() == null ? Map.of() : balancesAfter(filter.accountId());
     Feed feed = assemble(rows, filter.accountId(), balances);
-    return new Feed(feed.days(), dates.size() == days ? dates.getLast() : null);
+    return new Feed(feed.days(), more ? dates.getLast() : null);
   }
+
+  private record DayCount(LocalDate day, int count) {}
 
   /** Все строки операций по фильтру, от старых к новым — для выгрузки в CSV и XLSX. */
   public List<ExportRow> export(Feed.Filter filter) {

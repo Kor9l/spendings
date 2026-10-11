@@ -78,3 +78,8 @@ document.addEventListener('htmx:afterSettle', (event) => {
   showFlashToast();
   initSortables(event.target);
 });
+
+// PWA: service worker кэширует статику и показывает офлайн-страницу без сети.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+}

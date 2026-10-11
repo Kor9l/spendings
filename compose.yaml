@@ -1,8 +1,11 @@
-# Разработка: ./gradlew bootRun — Spring Boot сам поднимет db (приложение — в IDE).
-# Всё в контейнерах: docker compose --profile app up --build
+# Разработка: ./gradlew bootRun — Spring Boot сам поднимет db (сервисы с profiles он не трогает).
+# Свой сервер: docker compose --profile app up -d --build            (приложение + бэкап)
+#              docker compose --profile app --profile https up -d    (+ Caddy с HTTPS)
+# Настройки — в .env (образец: .env.example), подробности — docs/03-deploy.md.
 services:
   db:
     image: postgres:18.6
+    restart: unless-stopped
     environment:
       POSTGRES_DB: spendings
       POSTGRES_USER: spendings
@@ -18,18 +21,69 @@ services:
       retries: 10
 
   app:
-    profiles: [app]       # Spring Boot при bootRun этот сервис не запускает
+    profiles: [app]
     build: .
+    restart: unless-stopped
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/spendings
       SPRING_DATASOURCE_USERNAME: spendings
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-spendings}
       SPENDINGS_REMEMBER_ME_KEY: ${SPENDINGS_REMEMBER_ME_KEY:-}
+      SPENDINGS_RP_ID: ${SPENDINGS_RP_ID:-localhost}
+      SPENDINGS_ORIGIN: ${SPENDINGS_ORIGIN:-http://localhost:8080}
+      TZ: ${TZ:-Europe/Minsk}
     ports:
-      - "8080:8080"
+      # по умолчанию — только с этого компьютера; снаружи — через Caddy или Tailscale
+      - "${SPENDINGS_BIND:-127.0.0.1}:8080:8080"
+    healthcheck:
+      # в образе JRE нет curl и wget: запрос через /dev/tcp
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /actuator/health HTTP/1.0\r\n\r\n' >&3 && grep -q UP <&3"]
+      interval: 15s
+      timeout: 5s
+      start_period: 60s
+      retries: 5
     depends_on:
       db:
         condition: service_healthy
 
+  # Ночной pg_dump + проверка, что дамп восстанавливается. Дампы — в ./backups на хосте.
+  backup:
+    profiles: [app]
+    image: postgres:18.6
+    restart: unless-stopped
+    entrypoint: ["/bin/bash", "/scripts/backup-loop.sh"]
+    environment:
+      PGHOST: db
+      PGUSER: spendings
+      PGPASSWORD: ${POSTGRES_PASSWORD:-spendings}
+      PGDATABASE: spendings
+      BACKUP_AT: ${BACKUP_AT:-03:30}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-30}
+      BACKUP_COPY_COMMAND: ${BACKUP_COPY_COMMAND:-}
+      TZ: ${TZ:-Europe/Minsk}
+    volumes:
+      - ./deploy/scripts:/scripts:ro
+      - ${BACKUP_DIR:-./backups}:/backups
+    depends_on:
+      app:
+        condition: service_healthy   # схему создаёт приложение (Flyway)
+
+  caddy:
+    profiles: [https]
+    image: caddy:2.10
+    restart: unless-stopped
+    environment:
+      SPENDINGS_DOMAIN: ${SPENDINGS_DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on:
+      app:
+        condition: service_healthy
+
 volumes:
   db-data:
+  caddy-data:
