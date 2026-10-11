@@ -119,6 +119,14 @@
           </div>
         </section>
 
+        <section th:unless="${depositsDue.empty}">
+          <div class="d-flex justify-content-between align-items-baseline mb-2">
+            <h2 class="h6 text-body-secondary text-uppercase small mb-0" th:text="#{dashboard.depositsDue}">Проценты по вкладам</h2>
+            <a class="small" th:href="@{/deposits}" th:text="#{nav.deposits}">Вклады</a>
+          </div>
+          <ul th:replace="~{deposit/fragments :: due(${depositsDue}, '/')}"></ul>
+        </section>
+
         <section class="card" th:unless="${upcoming.empty and budgetWarnings.empty}">
           <div class="card-body vstack gap-3">
             <div th:unless="${upcoming.empty}">

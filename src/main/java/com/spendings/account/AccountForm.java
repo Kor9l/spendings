@@ -1,6 +1,5 @@
 package com.spendings.account;
 
-import com.spendings.account.DepositTerms.Capitalization;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -8,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 import org.springframework.format.annotation.DateTimeFormat;
 
@@ -57,6 +57,9 @@ public class AccountForm {
 
   private boolean autoRenew;
 
+  /** Куда выплачиваются проценты вклада без капитализации; пусто — на сам вклад. */
+  private @Nullable UUID payoutAccountId;
+
   static AccountForm of(Account account) {
     var form = new AccountForm();
     form.name = account.name();
@@ -78,6 +81,7 @@ public class AccountForm {
     maturesOn = terms.maturesOn();
     revocable = terms.revocable();
     autoRenew = terms.autoRenew();
+    payoutAccountId = terms.payoutAccountId();
   }
 
   BigDecimal openingBalanceOrZero() {
@@ -210,5 +214,13 @@ public class AccountForm {
 
   public void setAutoRenew(boolean autoRenew) {
     this.autoRenew = autoRenew;
+  }
+
+  public @Nullable UUID getPayoutAccountId() {
+    return payoutAccountId;
+  }
+
+  public void setPayoutAccountId(@Nullable UUID payoutAccountId) {
+    this.payoutAccountId = payoutAccountId;
   }
 }

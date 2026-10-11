@@ -131,6 +131,16 @@
     <div class="chart chart-wide" th:attr="data-chart=${trend},data-currency=${baseCurrency}"
          role="img" th:aria-label="#{report.trend}"></div>
   </section>
+
+  <section class="mt-4">
+    <div class="d-flex justify-content-between align-items-baseline mb-2">
+      <h2 class="h6 text-body-secondary text-uppercase small mb-0" th:text="#{report.capital}">Капитал по месяцам</h2>
+      <a class="small" th:href="@{/deposits/report}" th:text="#{deposit.report}">Проценты за год</a>
+    </div>
+    <div class="chart chart-wide" th:attr="data-chart=${capital},data-currency=${baseCurrency}"
+         role="img" th:aria-label="#{report.capital}"></div>
+    <p class="small text-body-secondary" th:text="#{report.capitalHint}">Остатки на конец месяца по курсу на ту дату.</p>
+  </section>
 </main>
 </body>
 </html>

@@ -40,6 +40,7 @@ public class OperationStats {
             join operation_line l on l.operation_id = o.id
             join account a on a.id = l.account_id
             where o.status = 'CLEARED' and l.account_id in (:accounts) and o.occurred_on >= :from
+              and o.source <> 'INTEREST'
             group by 1, 2
             """)
         .param("currency", currency)

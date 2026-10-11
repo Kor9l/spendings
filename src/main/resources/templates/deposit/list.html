@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head><title th:text="#{deposit.title} + ' · ' + #{app.name}">Вклады</title></head>
+<body>
+<main class="container py-3">
+  <div class="d-flex justify-content-between align-items-center mb-3 gap-2 flex-wrap">
+    <h1 class="h4 mb-0" th:text="#{deposit.title}">Вклады</h1>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-secondary btn-sm" th:href="@{/deposits/report}" th:text="#{deposit.report}">Проценты за год</a>
+      <a class="btn btn-primary btn-sm" th:href="@{/accounts/new}" th:text="'+ ' + #{deposit.new}">+ Вклад</a>
+    </div>
+  </div>
+
+  <p class="text-body-secondary py-4 text-center" th:if="${active.empty and archived.empty}" th:text="#{deposit.empty}">Вкладов пока нет.</p>
+
+  <section class="mb-4" th:unless="${due.empty}">
+    <h2 class="h6 text-body-secondary text-uppercase small" th:text="#{deposit.due}">Пора провести проценты</h2>
+    <ul th:replace="~{deposit/fragments :: due(${due}, '/deposits')}"></ul>
+  </section>
+
+  <div class="row g-3">
+    <div class="col-12 col-md-6 col-xl-4" th:each="v : ${active}">
+      <a class="card h-100 text-decoration-none text-body" th:href="@{/deposits/{id}(id=${v.deposit.account.id})}">
+        <div class="card-body vstack gap-2">
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <div class="min-w-0">
+              <div class="fw-semibold text-truncate" th:text="${v.deposit.account.name}">Вклад</div>
+              <div class="small text-body-secondary" th:text="${v.deposit.bank != null ? v.deposit.bank + ' · ' : ''} + ${@money.percent(v.deposit.annualRate)} + ' · ' + #{'account.capitalization.' + ${v.deposit.capitalization}}">Банк · 12 % · Ежемесячно</div>
+            </div>
+            <span class="badge text-bg-warning" th:if="${v.dueCount() > 0}" th:text="#{deposit.dueBadge(${v.dueCount()})}">2 к проведению</span>
+          </div>
+          <div class="fs-5 font-monospace" th:text="${@money.format(v.balance, v.deposit.account.currency)}">10 000,00 BYN</div>
+          <dl class="row small mb-0">
+            <dt class="col-7 fw-normal text-body-secondary" th:text="#{deposit.effectiveRate}">Доходность после налога</dt>
+            <dd class="col-5 text-end mb-1" th:text="${@money.percent(v.effectiveRate)}">12,68 %</dd>
+            <dt class="col-7 fw-normal text-body-secondary" th:text="#{deposit.received}">Получено процентов</dt>
+            <dd class="col-5 text-end mb-1 font-monospace" th:text="${@money.format(v.received, v.deposit.account.currency)}">300,00</dd>
+            <dt class="col-7 fw-normal text-body-secondary" th:text="${v.deposit.maturesOn != null} ? #{deposit.expectedToEnd} : #{deposit.expectedYear}">Ещё ожидается</dt>
+            <dd class="col-5 text-end mb-1 font-monospace amount-positive" th:text="${@money.format(v.expected, v.deposit.account.currency)}">900,00</dd>
+            <th:block th:if="${v.deposit.maturesOn != null}">
+              <dt class="col-7 fw-normal text-body-secondary" th:text="#{deposit.maturesOn(${#temporals.format(v.deposit.maturesOn, 'd MMMM yyyy')})}">До 1 октября 2027</dt>
+              <dd class="col-5 text-end mb-0" th:text="#{deposit.daysLeft(${v.daysLeft})}">355 дн.</dd>
+            </th:block>
+          </dl>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <section class="mt-4" th:unless="${archived.empty}">
+    <h2 class="h6 text-body-secondary" th:text="#{account.list.archived}">Архив</h2>
+    <ul class="list-group">
+      <li class="list-group-item d-flex justify-content-between text-body-secondary" th:each="v : ${archived}">
+        <a class="text-reset" th:href="@{/deposits/{id}(id=${v.deposit.account.id})}" th:text="${v.deposit.account.name}">Старый вклад</a>
+        <span class="font-monospace" th:text="#{deposit.receivedShort(${@money.format(v.received, v.deposit.account.currency)})}">получено 300,00 BYN</span>
+      </li>
+    </ul>
+  </section>
+</main>
+</body>
+</html>
