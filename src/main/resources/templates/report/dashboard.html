@@ -49,7 +49,7 @@
           <div class="fs-5 font-monospace" th:classappend="${totals.net().signum() < 0} ? 'amount-negative'"
                th:text="${@money.signed(totals.net(), baseCurrency)}">+1 095,70 BYN</div>
           <div class="small text-body-secondary" th:if="${savingsRate != null}"
-               th:text="#{dashboard.savingsRate} + ' ' + ${savingsRate} + '%'">отложено 78%</div>
+               th:text="#{dashboard.savingsRate} + ' ' + ${@money.percent(savingsRate)} + '%'">отложено 78%</div>
         </div></div>
       </div>
       <div class="col-6 col-lg-3">
@@ -80,6 +80,18 @@
               </div>
             </li>
           </ul>
+        </section>
+
+        <section th:unless="${goals.empty}">
+          <div class="d-flex justify-content-between align-items-baseline mb-2">
+            <h2 class="h6 text-body-secondary text-uppercase small mb-0" th:text="#{dashboard.goals}">Цели</h2>
+            <a class="small" th:href="@{/goals}" th:text="#{dashboard.allGoals}">Все цели</a>
+          </div>
+          <div class="vstack gap-2">
+            <a class="card text-decoration-none text-body goal-card" th:each="g : ${goals}" th:href="@{/goals/{id}(id=${g.id})}">
+              <div th:replace="~{goal/details :: summary(${g})}"></div>
+            </a>
+          </div>
         </section>
 
         <section>

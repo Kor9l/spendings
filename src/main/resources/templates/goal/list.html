@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head><title th:text="#{goal.title} + ' · ' + #{app.name}">Цели</title></head>
+<body>
+<main class="container py-3 narrow-container">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h4 mb-0" th:text="#{goal.title}">Цели</h1>
+    <a class="btn btn-primary btn-sm" th:href="@{/goals/new}" th:text="'+ ' + #{goal.new}">+ Новая цель</a>
+  </div>
+
+  <div class="card" th:if="${goals.empty}">
+    <div class="card-body">
+      <p class="mb-2" th:text="#{goal.empty}">Целей пока нет.</p>
+      <a class="btn btn-primary btn-sm" th:href="@{/goals/new}" th:text="#{goal.new}">Новая цель</a>
+    </div>
+  </div>
+
+  <div class="vstack gap-3">
+    <a class="card text-decoration-none text-body goal-card" th:each="g : ${goals}" th:href="@{/goals/{id}(id=${g.id})}"
+       th:classappend="${!g.active} ? 'opacity-75'">
+      <div th:replace="~{goal/details :: summary(${g})}"></div>
+    </a>
+  </div>
+</main>
+</body>
+</html>

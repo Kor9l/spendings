@@ -74,7 +74,7 @@
                      th:text="${row.category.icon} + ' ' + ${row.category.name}">🍽️ Еда</a>
                 </td>
                 <td class="text-end font-monospace text-nowrap" th:text="${@money.format(row.amount, baseCurrency)}">76,60 BYN</td>
-                <td class="text-end font-monospace text-body-secondary" th:text="${row.share}">25,2</td>
+                <td class="text-end font-monospace text-body-secondary" th:text="${@money.percent(row.share)}">25,2</td>
               </tr>
               <tr th:each="child : ${row.children}">
                 <td class="ps-4">
@@ -82,7 +82,7 @@
                      th:text="${child.category.name}">Продукты</a>
                 </td>
                 <td class="text-end font-monospace text-nowrap" th:text="${@money.format(child.amount, baseCurrency)}">62,10 BYN</td>
-                <td class="text-end font-monospace text-body-secondary" th:text="${child.share}">81,1</td>
+                <td class="text-end font-monospace text-body-secondary" th:text="${@money.percent(child.share)}">81,1</td>
               </tr>
               <tr th:if="${row.direct.signum() > 0 and !row.children.empty}">
                 <td class="ps-4 text-body-secondary" th:text="#{report.unspecified}">без уточнения</td>

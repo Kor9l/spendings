@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head><title th:text="(${goalId} == null ? #{goal.new} : #{goal.edit}) + ' · ' + #{app.name}">Цель</title></head>
+<body>
+<main class="container py-3 narrow-container"
+      th:attr="data-kind=${form.kind},data-funding=${form.funding}"
+      x-data="{ kind: $el.dataset.kind, funding: $el.dataset.funding }">
+  <p class="small text-body-secondary mb-1"><a th:href="@{/goals}" th:text="#{goal.title}">Цели</a></p>
+  <h1 class="h4 mb-3" th:text="${goalId} == null ? #{goal.new} : #{goal.edit}">Новая цель</h1>
+
+  <form method="post" th:object="${form}" novalidate class="vstack gap-3"
+        th:action="${goalId} == null ? @{/goals} : @{/goals/{id}(id=${goalId})}">
+    <div class="alert alert-danger mb-0" th:if="${#fields.hasGlobalErrors()}">
+      <div th:each="error : ${#fields.globalErrors()}" th:text="${error}">Ошибка</div>
+    </div>
+    <input type="hidden" th:field="*{version}">
+
+    <div class="row g-2">
+      <div class="col-3 col-sm-2">
+        <label class="form-label" for="icon" th:text="#{category.icon}">Иконка</label>
+        <input class="form-control text-center" th:field="*{icon}" maxlength="16" placeholder="🚗">
+      </div>
+      <div class="col">
+        <label class="form-label" for="name" th:text="#{goal.name}">Название</label>
+        <input class="form-control" th:field="*{name}" th:errorclass="is-invalid" maxlength="80" required autofocus
+               th:placeholder="#{goal.namePlaceholder}">
+        <div class="invalid-feedback" th:errors="*{name}"></div>
+      </div>
+    </div>
+
+    <fieldset>
+      <legend class="form-label fs-6" th:text="#{goal.kind}">Сколько нужно</legend>
+      <div class="btn-group w-100" role="group">
+        <input type="radio" class="btn-check" th:field="*{kind}" value="AMOUNT" x-model="kind">
+        <label class="btn btn-outline-primary" th:for="${#ids.prev('kind')}" th:text="#{goal.kind.AMOUNT}">Сумма</label>
+        <input type="radio" class="btn-check" th:field="*{kind}" value="MONTHS_OF_EXPENSES" x-model="kind">
+        <label class="btn btn-outline-primary" th:for="${#ids.prev('kind')}" th:text="#{goal.kind.MONTHS_OF_EXPENSES}">Месяцы расходов</label>
+      </div>
+    </fieldset>
+
+    <div class="row g-2">
+      <div class="col" x-show="kind === 'AMOUNT'">
+        <label class="form-label" for="targetAmount" th:text="#{goal.targetAmount}">Сумма цели</label>
+        <input class="form-control" th:field="*{targetAmount}" th:errorclass="is-invalid" inputmode="decimal" placeholder="25 000">
+        <div class="invalid-feedback" th:errors="*{targetAmount}"></div>
+      </div>
+      <div class="col" x-show="kind === 'MONTHS_OF_EXPENSES'" x-cloak>
+        <label class="form-label" for="targetMonths" th:text="#{goal.targetMonths}">Сколько месяцев расходов</label>
+        <input class="form-control" type="number" min="1" max="120" th:field="*{targetMonths}">
+        <div class="form-text" th:text="#{goal.targetMonthsHint}">Сумма считается по среднему расходу за год.</div>
+      </div>
+      <div class="col-4">
+        <label class="form-label" for="currency" th:text="#{account.currency}">Валюта</label>
+        <select class="form-select" th:field="*{currency}">
+          <option th:each="c : ${currencies}" th:value="${c.code}" th:text="${c.code}">USD</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row g-2">
+      <div class="col-sm-6">
+        <label class="form-label" for="targetDate" th:text="#{goal.targetDate}">Срок</label>
+        <input class="form-control" type="date" th:field="*{targetDate}">
+        <div class="form-text" th:text="#{goal.targetDateHint}">Необязательно. Со сроком — посчитаем взнос в месяц.</div>
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label" for="priority" th:text="#{goal.priority}">Приоритет</label>
+        <input class="form-control" type="number" th:field="*{priority}">
+        <div class="form-text" th:text="#{goal.priorityHint}">Чем больше, тем выше в списке.</div>
+      </div>
+    </div>
+
+    <fieldset>
+      <legend class="form-label fs-6" th:text="#{goal.funding}">Где копим</legend>
+      <div class="vstack gap-2">
+        <div class="form-check">
+          <input class="form-check-input" type="radio" th:field="*{funding}" value="ACCOUNTS" x-model="funding">
+          <label class="form-check-label" th:for="${#ids.prev('funding')}">
+            <span th:text="#{goal.funding.ACCOUNTS}">На счетах</span>
+            <span class="d-block small text-body-secondary" th:text="#{goal.funding.ACCOUNTS.hint}">Накопительный счёт, вклад или конверт с наличными.</span>
+          </label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" th:field="*{funding}" value="MANUAL" x-model="funding">
+          <label class="form-check-label" th:for="${#ids.prev('funding')}">
+            <span th:text="#{goal.funding.MANUAL}">Виртуальный резерв</span>
+            <span class="d-block small text-body-secondary" th:text="#{goal.funding.MANUAL.hint}">Отдельного счёта нет — отмечаю «отложил».</span>
+          </label>
+        </div>
+      </div>
+    </fieldset>
+
+    <div class="vstack gap-2" x-show="funding === 'ACCOUNTS'">
+      <p class="small text-body-secondary mb-0" th:text="#{goal.sharesHint}">Отметьте счета и какая доля их остатка относится к цели.</p>
+      <p class="small text-body-secondary mb-0" th:if="${form.accounts.empty}">
+        <a th:href="@{/accounts/new}" th:text="#{operation.createAccount}">Создать счёт</a>
+      </p>
+      <div class="d-flex align-items-center gap-2" th:each="row, i : *{accounts}">
+        <input type="hidden" th:field="*{accounts[__${i.index}__].accountId}">
+        <div class="form-check flex-grow-1">
+          <input class="form-check-input" type="checkbox" value="true" th:id="${'share-' + i.index}"
+                 th:name="${'accounts[' + i.index + '].selected'}" th:checked="${row.selected}">
+          <input type="hidden" value="on" th:name="${'_accounts[' + i.index + '].selected'}">
+          <label class="form-check-label" th:for="${'share-' + i.index}" th:text="${row.label}">🏦 Вклад · USD</label>
+        </div>
+        <div class="input-group input-group-sm" style="width: 7rem">
+          <input class="form-control text-end" th:field="*{accounts[__${i.index}__].sharePct}" inputmode="decimal"
+                 th:attr="aria-label=#{goal.share}">
+          <span class="input-group-text">%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2">
+      <button class="btn btn-primary" type="submit" th:text="#{common.save}">Сохранить</button>
+      <a class="btn btn-link" th:href="${goalId} == null ? @{/goals} : @{/goals/{id}(id=${goalId})}" th:text="#{common.cancel}">Отмена</a>
+    </div>
+  </form>
+</main>
+</body>
+</html>

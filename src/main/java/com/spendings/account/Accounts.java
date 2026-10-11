@@ -77,6 +77,17 @@ public class Accounts {
         .add(movements.totals().getOrDefault(accountId, BigDecimal.ZERO));
   }
 
+  /**
+   * Ставка, по которой растёт остаток счёта: только у вклада с капитализацией. Без капитализации
+   * проценты уходят на другой счёт и остаток не растёт.
+   */
+  public Optional<BigDecimal> compoundingRate(UUID accountId) {
+    return depositTerms
+        .findById(accountId)
+        .filter(t -> t.capitalization() != Capitalization.NONE)
+        .map(DepositTerms::annualRate);
+  }
+
   // ---- изменение: только для контроллера модуля ----
 
   AccountForm formFor(UUID id) {
