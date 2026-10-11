@@ -119,6 +119,10 @@ class Operation {
     this.externalKey = externalKey;
   }
 
+  void markInterest() {
+    this.source = Source.INTEREST;
+  }
+
   void confirm() {
     this.status = Status.CLEARED;
     this.updatedAt = Instant.now();
@@ -163,7 +167,9 @@ class Operation {
     MANUAL,
     IMPORT,
     RECURRING,
-    BOT
+    BOT,
+    /** Проценты по вкладу: в темп накопления целей не входят — их учитывает ставка. */
+    INTEREST
   }
 
   enum Status {

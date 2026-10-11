@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head><title th:text="${view.deposit.account.name} + ' · ' + #{app.name}">Вклад</title></head>
+<body>
+<main class="container py-3" th:with="d=${view.deposit}, cur=${view.deposit.account.currency}">
+  <p class="small text-body-secondary mb-1"><a th:href="@{/deposits}" th:text="#{deposit.title}">Вклады</a></p>
+  <div class="d-flex justify-content-between align-items-start gap-2 mb-3 flex-wrap">
+    <div>
+      <h1 class="h4 mb-1" th:text="${d.account.name}">Вклад</h1>
+      <div class="text-body-secondary small"
+           th:text="${d.bank != null ? d.bank + ' · ' : ''} + ${@money.percent(d.annualRate)} + ' · ' + #{'account.capitalization.' + ${d.capitalization}} + ${d.taxRate.signum() > 0 ? ' · ' + #messages.msg('deposit.tax', @money.percent(d.taxRate)) : ''}">Банк · 12 % · Ежемесячно</div>
+    </div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-sm btn-outline-secondary" th:href="@{/accounts/{id}(id=${d.account.id})}" th:text="#{account.statement}">Выписка</a>
+      <a class="btn btn-sm btn-outline-secondary" th:href="@{/accounts/{id}/edit(id=${d.account.id})}" th:text="#{deposit.editTerms}">Условия</a>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4 text-nowrap">
+    <div class="col-6 col-lg-3"><div class="card h-100"><div class="card-body">
+      <div class="small text-body-secondary" th:text="#{account.balance}">Остаток</div>
+      <div class="fs-5 font-monospace" th:text="${@money.format(view.balance, cur)}">10 000,00 BYN</div>
+    </div></div></div>
+    <div class="col-6 col-lg-3"><div class="card h-100"><div class="card-body">
+      <div class="small text-body-secondary" th:text="#{deposit.effectiveRate}">Доходность после налога</div>
+      <div class="fs-5" th:text="${@money.percent(view.effectiveRate)}">12,68 %</div>
+    </div></div></div>
+    <div class="col-6 col-lg-3"><div class="card h-100"><div class="card-body">
+      <div class="small text-body-secondary" th:text="#{deposit.received}">Получено процентов</div>
+      <div class="fs-5 font-monospace amount-positive" th:text="${@money.format(view.received, cur)}">300,00 BYN</div>
+    </div></div></div>
+    <div class="col-6 col-lg-3"><div class="card h-100"><div class="card-body">
+      <div class="small text-body-secondary" th:text="${d.maturesOn != null} ? #{deposit.atMaturity(${#temporals.format(d.maturesOn, 'd MMM yyyy')})} : #{deposit.expectedYear}">К концу срока</div>
+      <div class="fs-5 font-monospace" th:text="${view.atMaturity != null} ? ${@money.format(view.atMaturity, cur)} : ${@money.format(view.expected, cur)}">11 268,00 BYN</div>
+      <div class="small text-body-secondary" th:if="${view.atMaturity != null}" th:text="#{deposit.expectedShort(${@money.format(view.expected, cur)})}">из них проценты 1 268,00</div>
+    </div></div></div>
+  </div>
+
+  <section class="mb-4" th:unless="${due.empty}">
+    <h2 class="h6 text-body-secondary text-uppercase small" th:text="#{deposit.due}">Пора провести проценты</h2>
+    <ul th:replace="~{deposit/fragments :: due(${due}, ${'/deposits/' + d.account.id})}"></ul>
+  </section>
+
+  <h2 class="h6 text-body-secondary text-uppercase small" th:text="#{deposit.schedule}">График начислений</h2>
+  <p class="small text-body-secondary" th:text="#{deposit.scheduleHint}">Прошедшие периоды считаются по фактическому остатку на начало периода, будущие — по текущему остатку с капитализацией.</p>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle">
+      <thead>
+        <tr class="small text-body-secondary">
+          <th th:text="#{deposit.period}">Период</th>
+          <th class="text-end" th:text="#{deposit.base}">Остаток</th>
+          <th class="text-end" th:text="#{deposit.gross}">Проценты</th>
+          <th class="text-end" th:if="${d.taxRate.signum() > 0}" th:text="#{deposit.taxShort}">Налог</th>
+          <th class="text-end" th:text="#{deposit.net}">К зачислению</th>
+          <th th:text="#{deposit.state}">Статус</th>
+        </tr>
+      </thead>
+      <tbody class="font-monospace small">
+        <tr th:each="r : ${view.rows}" th:classappend="${r.state.name() == 'DUE'} ? 'table-warning' : (${r.state.name() == 'FUTURE'} ? 'text-body-secondary')">
+          <td class="font-sans-serif text-nowrap" th:text="${#temporals.format(r.period.start, 'dd.MM.yy')} + ' – ' + ${#temporals.format(r.period.end, 'dd.MM.yy')}">01.10.26 – 01.11.26</td>
+          <td class="text-end" th:text="${@money.input(r.period.base)}">10 000,00</td>
+          <td class="text-end" th:text="${@money.input(r.period.gross)}">101,92</td>
+          <td class="text-end" th:if="${d.taxRate.signum() > 0}" th:text="${@money.input(r.period.tax)}">13,25</td>
+          <td class="text-end" th:text="${@money.input(r.period.net)}">88,67</td>
+          <td class="font-sans-serif text-nowrap">
+            <th:block th:switch="${r.state.name()}">
+              <a th:case="'POSTED'" class="badge text-bg-success text-decoration-none" th:href="@{/operations/{id}/edit(id=${r.operationId})}"
+                 th:text="${r.actualDiffers()} ? #{deposit.state.POSTED} + ' ' + ${@money.format(r.actual, r.actualCurrency)} : #{deposit.state.POSTED}">проведено</a>
+              <form th:case="'SKIPPED'" class="d-inline" method="post" th:action="@{/deposits/{id}/unskip(id=${d.account.id})}">
+                <input type="hidden" name="periodEnd" th:value="${r.period.end}">
+                <span class="badge text-bg-secondary" th:text="#{deposit.state.SKIPPED}">пропущено</span>
+                <button class="btn btn-link btn-sm p-0 ms-1" type="submit" th:text="#{deposit.unskip}">вернуть</button>
+              </form>
+              <span th:case="*" class="badge" th:classappend="${r.state.name() == 'DUE'} ? 'text-bg-warning' : 'text-bg-light'" th:text="#{'deposit.state.' + ${r.state}}">ожидается</span>
+            </th:block>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+</body>
+</html>

@@ -202,6 +202,19 @@ class Reports {
     return Map.of("type", "sunburst", "data", data);
   }
 
+  /** Капитал по месяцам, заканчивая {@code last}. */
+  List<ReportQueries.MonthCapital> capital(YearMonth last, int months, String base) {
+    return queries.capital(last.minusMonths(months - 1L), last, base);
+  }
+
+  static Map<String, Object> capitalChart(List<ReportQueries.MonthCapital> months) {
+    return Map.of(
+        "type", "capital",
+        "months", months.stream().map(m -> m.month().toString()).toList(),
+        "total", months.stream().map(m -> chartNumber(m.total())).toList(),
+        "savings", months.stream().map(m -> chartNumber(m.savings())).toList());
+  }
+
   static Map<String, Object> trendChart(List<MonthTotals> months) {
     return Map.of(
         "type", "trend",

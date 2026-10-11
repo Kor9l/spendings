@@ -2,6 +2,7 @@ package com.spendings.report;
 
 import com.spendings.account.Accounts;
 import com.spendings.category.CategoryKind;
+import com.spendings.deposit.Deposits;
 import com.spendings.fx.BaseCurrency;
 import com.spendings.goal.Goals;
 import com.spendings.operation.Feed;
@@ -35,6 +36,7 @@ class DashboardController {
   private final Goals goals;
   private final Planner planner;
   private final Budgets budgets;
+  private final Deposits deposits;
 
   DashboardController(
       BaseCurrency baseCurrency,
@@ -44,7 +46,9 @@ class DashboardController {
       JdbcClient jdbc,
       Goals goals,
       Planner planner,
-      Budgets budgets) {
+      Budgets budgets,
+      Deposits deposits) {
+    this.deposits = deposits;
     this.planner = planner;
     this.budgets = budgets;
     this.goals = goals;
@@ -88,6 +92,7 @@ class DashboardController {
     model.addAttribute("goals", goals.active().stream().limit(TOP_GOALS).toList());
     model.addAttribute("upcoming", planner.upcoming(UPCOMING_DAYS));
     model.addAttribute("budgetWarnings", budgets.warnings());
+    model.addAttribute("depositsDue", deposits.due());
     model.addAttribute("monthForecast", planner.forecast(budgets.current().to()));
 
     Feed recent = operations.page(Feed.Filter.none(), null, RECENT_DAYS);

@@ -121,6 +121,52 @@ class ReportQueries {
     return months;
   }
 
+  /**
+   * Капитал на конец каждого месяца: остатки счетов, учитываемых в капитале, по курсу на ту дату
+   * (для текущего месяца — на сегодня). Суммы без курса не входят.
+   */
+  List<MonthCapital> capital(YearMonth first, YearMonth last, String base) {
+    return jdbc.sql(
+            """
+            with months as (
+              select (date_trunc('month', m) + interval '1 month - 1 day')::date as month_end
+              from generate_series(cast(:first as date), cast(:last as date), interval '1 month') m
+            ),
+            balances as (
+              select m.month_end, a.type, a.currency,
+                     a.opening_balance + coalesce((
+                       select sum(l.amount) from operation_line l
+                       join operation o on o.id = l.operation_id
+                       where l.account_id = a.id and o.status = 'CLEARED' and o.occurred_on <= m.month_end
+                     ), 0) as balance
+              from months m
+              join account a on a.in_net_worth and a.opened_on <= m.month_end
+            )
+            select month_end,
+                   coalesce(sum(balance * fx_rate(currency, :base, least(month_end, current_date))), 0) as total,
+                   coalesce(sum(balance * fx_rate(currency, :base, least(month_end, current_date)))
+                            filter (where type in ('DEPOSIT', 'SAVINGS')), 0) as savings
+            from months m left join balances b using (month_end)
+            group by month_end
+            order by month_end
+            """)
+        .param("first", first.atDay(1))
+        .param("last", last.atDay(1))
+        .param("base", base)
+        .query(
+            (rs, i) ->
+                new MonthCapital(
+                    YearMonth.from(rs.getObject("month_end", LocalDate.class)),
+                    rs.getBigDecimal("total"),
+                    rs.getBigDecimal("savings")))
+        .list();
+  }
+
+  /**
+   * @param savings из них на вкладах и накопительных счетах
+   */
+  record MonthCapital(YearMonth month, BigDecimal total, BigDecimal savings) {}
+
   record Totals(BigDecimal income, BigDecimal expenses, int missingRates) {
 
     public BigDecimal net() {

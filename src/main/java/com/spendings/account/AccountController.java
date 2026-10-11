@@ -131,6 +131,8 @@ class AccountController {
     model.addAttribute("accountId", id);
     model.addAttribute("types", AccountType.values());
     model.addAttribute("currencies", currencies.all());
+    model.addAttribute(
+        "payoutAccounts", accounts.active().stream().filter(a -> !a.id().equals(id)).toList());
     return "account/form";
   }
 

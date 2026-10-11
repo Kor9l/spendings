@@ -1,15 +1,17 @@
 package com.spendings.account;
 
-import com.spendings.account.DepositTerms.Capitalization;
 import com.spendings.fx.Currencies;
 import com.spendings.shared.DomainException;
 import com.spendings.shared.NotFoundException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -86,6 +88,41 @@ public class Accounts {
         .findById(accountId)
         .filter(t -> t.capitalization() != Capitalization.NONE)
         .map(DepositTerms::annualRate);
+  }
+
+  /** Вклады с условиями, архивные — тоже. */
+  public List<DepositRef> deposits() {
+    Map<UUID, DepositTerms> terms =
+        depositTerms.findAll().stream()
+            .collect(Collectors.toMap(DepositTerms::accountId, Function.identity()));
+    var minorUnits = minorUnitsByCurrency();
+    return accounts.findAllByOrderBySortOrderAscNameAsc().stream()
+        .filter(a -> terms.containsKey(a.id()))
+        .map(a -> toDeposit(toRef(a, minorUnits), a, terms.get(a.id())))
+        .sorted(Comparator.comparing(d -> d.account().archived()))
+        .toList();
+  }
+
+  public Optional<DepositRef> deposit(UUID accountId) {
+    return accounts
+        .findById(accountId)
+        .flatMap(
+            a ->
+                depositTerms
+                    .findById(accountId)
+                    .map(t -> toDeposit(toRef(a, minorUnitsByCurrency()), a, t)));
+  }
+
+  /** Остаток счёта на конец каждого дня: начальный остаток плюс проведённые операции. */
+  public BalanceTimeline timeline(UUID accountId) {
+    AccountRef account = get(accountId);
+    var cumulative = new TreeMap<LocalDate, BigDecimal>();
+    BigDecimal running = account.openingBalance();
+    for (var e : movements.dailyChanges(accountId).entrySet()) {
+      running = running.add(e.getValue());
+      cumulative.put(e.getKey(), running);
+    }
+    return new BalanceTimeline(account.openingBalance(), cumulative);
   }
 
   // ---- изменение: только для контроллера модуля ----
@@ -205,7 +242,8 @@ public class Accounts {
         form.depositOpenedOnOrDefault(),
         form.getMaturesOn(),
         form.isRevocable(),
-        form.isAutoRenew());
+        form.isAutoRenew(),
+        form.getCapitalization() == Capitalization.NONE ? form.getPayoutAccountId() : null);
     depositTerms.save(terms);
   }
 
@@ -233,5 +271,48 @@ public class Accounts {
     return value == null || value.isBlank() ? null : value.strip();
   }
 
+  private static DepositRef toDeposit(AccountRef ref, Account a, DepositTerms t) {
+    return new DepositRef(
+        ref,
+        t.bank(),
+        t.annualRate(),
+        t.capitalization(),
+        t.taxRate(),
+        t.openedOn(),
+        t.maturesOn(),
+        t.revocable(),
+        t.autoRenew(),
+        t.payoutAccountId(),
+        a.createdAt().atZone(ZoneId.systemDefault()).toLocalDate());
+  }
+
   public record AccountBalance(AccountRef account, BigDecimal balance) {}
+
+  /**
+   * Вклад с условиями.
+   *
+   * @param payoutAccountId куда выплачиваются проценты без капитализации; {@code null} — на вклад
+   * @param addedOn когда вклад завели в приложении: проценты до этой даты уже в начальном остатке
+   */
+  public record DepositRef(
+      AccountRef account,
+      @Nullable String bank,
+      BigDecimal annualRate,
+      Capitalization capitalization,
+      BigDecimal taxRate,
+      LocalDate openedOn,
+      @Nullable LocalDate maturesOn,
+      boolean revocable,
+      boolean autoRenew,
+      @Nullable UUID payoutAccountId,
+      LocalDate addedOn) {}
+
+  /** Остаток на конец дня. */
+  public record BalanceTimeline(BigDecimal opening, NavigableMap<LocalDate, BigDecimal> byDay) {
+
+    public BigDecimal at(LocalDate date) {
+      var entry = byDay.floorEntry(date);
+      return entry == null ? opening : entry.getValue();
+    }
+  }
 }

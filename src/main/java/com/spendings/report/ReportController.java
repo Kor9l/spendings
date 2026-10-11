@@ -23,6 +23,9 @@ class ReportController {
 
   static final int TREND_MONTHS = 12;
 
+  /** Капитал — за два года: видно и рост, и сезонность. */
+  static final int CAPITAL_MONTHS = 24;
+
   private final Reports reports;
   private final BaseCurrency baseCurrency;
   private final Categories categories;
@@ -72,6 +75,10 @@ class ReportController {
     model.addAttribute("trendCategoryId", trendCategoryId);
     model.addAttribute("trendCategories", topLevelOptions());
     model.addAttribute("periods", periods(thisMonth));
+    model.addAttribute(
+        "capital",
+        json.writeValueAsString(
+            Reports.capitalChart(reports.capital(thisMonth, CAPITAL_MONTHS, base))));
     return "report/reports";
   }
 

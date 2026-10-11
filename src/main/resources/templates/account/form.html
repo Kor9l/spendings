@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: page(~{::title}, ~{::main})}">
 <head><title th:text="(${accountId} == null ? #{account.new} : #{account.edit}) + ' · ' + #{app.name}">Счёт</title></head>
 <body>
-<main class="container py-3 narrow-container" th:attr="data-type=${form.type}" x-data="{ type: $el.dataset.type }">
+<main class="container py-3 narrow-container" th:attr="data-type=${form.type},data-cap=${form.capitalization}" x-data="{ type: $el.dataset.type, cap: $el.dataset.cap }">
   <h1 class="h4 mb-3" th:text="${accountId} == null ? #{account.new} : #{account.edit}">Новый счёт</h1>
 
   <form method="post" th:object="${form}" novalidate class="vstack gap-3"
@@ -69,7 +69,7 @@
       <div class="row g-2">
         <div class="col-sm-6">
           <label class="form-label" for="capitalization" th:text="#{account.capitalization}">Капитализация</label>
-          <select class="form-select" th:field="*{capitalization}">
+          <select class="form-select" th:field="*{capitalization}" x-model="cap">
             <option th:each="c : ${form.capitalizations}" th:value="${c}" th:text="#{'account.capitalization.' + ${c}}">Ежемесячно</option>
           </select>
         </div>
@@ -88,6 +88,14 @@
           <label class="form-label" for="maturesOn" th:text="#{account.maturesOn}">Дата окончания</label>
           <input class="form-control" type="date" th:field="*{maturesOn}">
         </div>
+      </div>
+      <div x-show="cap === 'NONE'" x-cloak>
+          <label class="form-label" for="payoutAccountId" th:text="#{account.payoutAccount}">Проценты выплачиваются на</label>
+          <select class="form-select" th:field="*{payoutAccountId}">
+            <option value="" th:text="#{account.payoutToDeposit}">на сам вклад</option>
+            <option th:each="a : ${payoutAccounts}" th:value="${a.id}" th:text="${a.icon} + ' ' + ${a.name} + ' · ' + ${a.currency}">Карта</option>
+          </select>
+          <div class="form-text" th:text="#{account.payoutHint}">Только для вклада без капитализации.</div>
       </div>
       <div class="d-flex gap-4">
         <div class="form-check">

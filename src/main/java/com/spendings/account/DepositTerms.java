@@ -11,7 +11,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
-/** Условия вклада. Ключ совпадает с ключом счёта. График процентов — на этапе M6. */
+/** Условия вклада. Ключ совпадает с ключом счёта. */
 @Entity
 @Table(name = "deposit_terms")
 class DepositTerms {
@@ -28,6 +28,9 @@ class DepositTerms {
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private Capitalization capitalization;
+
+  @Column(name = "payout_account_id")
+  private @Nullable UUID payoutAccountId;
 
   @Column(name = "tax_rate", nullable = false, precision = 5, scale = 2)
   private BigDecimal taxRate;
@@ -65,8 +68,10 @@ class DepositTerms {
       LocalDate openedOn,
       @Nullable LocalDate maturesOn,
       boolean revocable,
-      boolean autoRenew) {
+      boolean autoRenew,
+      @Nullable UUID payoutAccountId) {
     this.bank = bank;
+    this.payoutAccountId = payoutAccountId;
     this.annualRate = annualRate;
     this.capitalization = capitalization;
     this.taxRate = taxRate;
@@ -108,10 +113,11 @@ class DepositTerms {
     return autoRenew;
   }
 
-  enum Capitalization {
-    NONE,
-    MONTHLY,
-    QUARTERLY,
-    AT_MATURITY
+  @Nullable UUID payoutAccountId() {
+    return payoutAccountId;
+  }
+
+  UUID accountId() {
+    return accountId;
   }
 }

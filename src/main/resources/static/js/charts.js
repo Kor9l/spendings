@@ -41,6 +41,43 @@
       };
     },
 
+    capital(data, currency) {
+      const axis = { axisLabel: { color: css('--bs-secondary-color') }, axisLine: { lineStyle: { color: css('--bs-border-color') } } };
+      return {
+        tooltip: { trigger: 'axis', valueFormatter: (v) => money(v, currency) },
+        legend: { textStyle: { color: css('--bs-body-color') } },
+        grid: { left: 8, right: 8, top: 36, bottom: 8, containLabel: true },
+        xAxis: { type: 'category', boundaryGap: false, data: data.months.map((m) => m.slice(5) + '.' + m.slice(2, 4)), ...axis },
+        yAxis: {
+          type: 'value',
+          axisLine: axis.axisLine,
+          axisLabel: { color: css('--bs-secondary-color'), formatter: (v) => v.toLocaleString('ru-RU') },
+          splitLine: { lineStyle: { color: css('--bs-border-color-translucent') } },
+        },
+        series: [
+          { name: 'Капитал', type: 'line', data: data.total, smooth: true, areaStyle: { opacity: 0.15 }, itemStyle: { color: css('--bs-primary') } },
+          { name: 'Вклады и накопления', type: 'line', data: data.savings, smooth: true, itemStyle: { color: css('--bs-success') } },
+        ],
+      };
+    },
+
+    interest(data, currency) {
+      const axis = { axisLabel: { color: css('--bs-secondary-color') }, axisLine: { lineStyle: { color: css('--bs-border-color') } } };
+      return {
+        tooltip: { trigger: 'axis', valueFormatter: (v) => money(v, currency) },
+        legend: { textStyle: { color: css('--bs-body-color') } },
+        grid: { left: 8, right: 8, top: 36, bottom: 8, containLabel: true },
+        xAxis: { type: 'category', data: data.months, ...axis },
+        yAxis: {
+          type: 'value',
+          axisLine: axis.axisLine,
+          axisLabel: { color: css('--bs-secondary-color'), formatter: (v) => v.toLocaleString('ru-RU') },
+          splitLine: { lineStyle: { color: css('--bs-border-color-translucent') } },
+        },
+        series: data.series.map((s) => ({ name: s.name, type: 'bar', stack: 'interest', data: s.data })),
+      };
+    },
+
     sankey(data, currency) {
       return {
         tooltip: { trigger: 'item', valueFormatter: (v) => money(v, currency) },

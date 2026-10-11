@@ -73,6 +73,16 @@ public class Operations {
     operations.flush();
   }
 
+  /** Начисленные проценты по вкладу. */
+  public UUID recordInterest(RecordIncome command) {
+    Plan plan = plan(command, null);
+    var operation =
+        new Operation(
+            plan.type(), command.date(), plan.payee(), text(command.note()), plan.lines());
+    operation.markInterest();
+    return operations.saveAndFlush(operation).id();
+  }
+
   /**
    * Операция из выписки: со статусом «на проверке», в остатки и отчёты не входит до подтверждения.
    */

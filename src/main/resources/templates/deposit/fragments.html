@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Начисления, которые пора провести. due — список Deposits.Due, back — куда вернуться. -->
+<ul class="list-group" th:fragment="due(items, back)">
+  <li class="list-group-item list-group-item-warning" th:each="d : ${items}" x-data="{ open: false }">
+    <div class="d-flex align-items-center gap-3">
+      <span class="fs-4 flex-shrink-0">📈</span>
+      <span class="flex-grow-1 min-w-0">
+        <a class="d-block text-truncate text-reset" th:href="@{/deposits/{id}(id=${d.deposit.account.id})}" th:text="${d.deposit.account.name}">Вклад</a>
+        <span class="small text-body-secondary"
+              th:text="#{deposit.interestFor(${#temporals.format(d.period.start, 'd MMM')}, ${#temporals.format(d.period.end, 'd MMM yyyy')})} + ' · ' + ${d.payTo.name}">проценты за 1 окт – 1 ноя · Вклад</span>
+      </span>
+      <span class="font-monospace text-nowrap amount-positive" th:text="${@money.signed(d.period.net, d.deposit.account.currency)}">+101,92 BYN</span>
+      <button type="button" class="btn btn-sm btn-outline-primary" x-on:click="open = !open" th:text="#{planning.post}">Провести</button>
+    </div>
+    <form class="row g-2 align-items-end mt-2" method="post" x-show="open" x-cloak
+          th:action="@{/deposits/{id}/post(id=${d.deposit.account.id})}"
+          th:with="key=${d.deposit.account.id + '-' + d.period.end}">
+      <input type="hidden" name="periodEnd" th:value="${d.period.end}">
+      <input type="hidden" name="back" th:value="${back}">
+      <div class="col-5 col-sm-4">
+        <label class="form-label small mb-1" th:for="${'amount-' + key}" th:text="#{deposit.actualAmount(${d.payTo.currency})}">Пришло</label>
+        <input class="form-control form-control-sm" th:id="${'amount-' + key}" name="amount" inputmode="decimal" required
+               th:value="${d.payTo.currency == d.deposit.account.currency} ? ${@money.input(d.period.net)} : ''">
+      </div>
+      <div class="col-7 col-sm-4">
+        <label class="form-label small mb-1" th:for="${'date-' + key}" th:text="#{operation.date}">Дата</label>
+        <input class="form-control form-control-sm" type="date" th:id="${'date-' + key}" name="date" th:value="${d.period.end}">
+      </div>
+      <div class="col-12 col-sm-4 d-flex gap-2">
+        <button class="btn btn-sm btn-primary flex-grow-1" type="submit" th:text="#{planning.post}">Провести</button>
+        <button class="btn btn-sm btn-outline-secondary" type="submit" formnovalidate
+                th:formaction="@{/deposits/{id}/skip(id=${d.deposit.account.id})}" th:text="#{planning.skip}">Пропустить</button>
+      </div>
+      <div class="col-12 form-text mt-1" th:text="#{deposit.postHint}">Сумма — как в выписке банка: она может отличаться от расчётной на копейки.</div>
+    </form>
+  </li>
+</ul>
+</body>
+</html>

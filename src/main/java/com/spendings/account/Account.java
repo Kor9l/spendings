@@ -134,6 +134,10 @@ class Account {
     return openingBalance;
   }
 
+  Instant createdAt() {
+    return createdAt;
+  }
+
   LocalDate openedOn() {
     return openedOn;
   }

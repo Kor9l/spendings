@@ -8,7 +8,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.UUID;
 import org.springframework.context.event.EventListener;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -51,6 +53,26 @@ class LedgerTotals implements AccountMovements, CategoryUsage, RateDemand {
         .param(accountId)
         .query(Boolean.class)
         .single();
+  }
+
+  @Override
+  public NavigableMap<LocalDate, BigDecimal> dailyChanges(UUID accountId) {
+    var changes = new TreeMap<LocalDate, BigDecimal>();
+    jdbc.sql(
+            """
+            select o.occurred_on, sum(l.amount) as total
+            from operation_line l
+            join operation o on o.id = l.operation_id
+            where o.status = 'CLEARED' and l.account_id = ?
+            group by o.occurred_on
+            """)
+        .param(accountId)
+        .query(
+            (rs, n) ->
+                changes.put(
+                    rs.getObject("occurred_on", LocalDate.class), rs.getBigDecimal("total")))
+        .list();
+    return changes;
   }
 
   @Override

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head><title th:text="#{deposit.report} + ' · ' + #{app.name}">Проценты за год</title></head>
+<body>
+<main class="container py-3" th:with="cur=${report.currency}">
+  <p class="small text-body-secondary mb-1"><a th:href="@{/deposits}" th:text="#{deposit.title}">Вклады</a></p>
+  <div class="d-flex align-items-center gap-2 mb-3">
+    <a class="btn btn-sm btn-outline-secondary" th:href="@{/deposits/report(year=${report.year - 1})}" aria-label="Предыдущий год">‹</a>
+    <h1 class="h4 mb-0" th:text="#{deposit.reportYear(${report.year})}">Проценты за 2026</h1>
+    <a class="btn btn-sm btn-outline-secondary" th:href="@{/deposits/report(year=${report.year + 1})}" aria-label="Следующий год">›</a>
+  </div>
+
+  <div class="row g-3 mb-4 text-nowrap">
+    <div class="col-6 col-lg-3"><div class="card h-100"><div class="card-body">
+      <div class="small text-body-secondary" th:text="#{deposit.received}">Получено процентов</div>
+      <div class="fs-5 font-monospace amount-positive" th:text="${@money.format(report.received, cur)}">1 200,00 BYN</div>
+    </div></div></div>
+    <div class="col-6 col-lg-3"><div class="card h-100"><div class="card-body">
+      <div class="small text-body-secondary" th:text="#{deposit.expectedRestOfYear}">Ещё ожидается в этом году</div>
+      <div class="fs-5 font-monospace" th:text="${@money.format(report.expected, cur)}">300,00 BYN</div>
+    </div></div></div>
+  </div>
+
+  <p class="text-body-secondary py-4 text-center" th:if="${report.rows.empty}" th:text="#{deposit.reportEmpty}">В этом году процентов не было.</p>
+
+  <th:block th:unless="${report.rows.empty}">
+    <div class="chart chart-wide mb-3" th:attr="data-chart=${chart},data-currency=${cur}" role="img" th:aria-label="#{deposit.report}"></div>
+
+    <div class="table-responsive">
+      <table class="table table-sm align-middle small">
+        <thead>
+          <tr class="text-body-secondary">
+            <th th:text="#{deposit.deposit}">Вклад</th>
+            <th class="text-end" th:each="m : ${monthNames}" th:text="${m}">янв</th>
+            <th class="text-end" th:text="#{deposit.total}">Итого</th>
+            <th class="text-end" th:text="#{deposit.expectedShortHeader}">Ожидается</th>
+            <th class="text-end" th:text="#{deposit.yield}">Доходность</th>
+          </tr>
+        </thead>
+        <tbody class="font-monospace">
+          <tr th:each="r : ${report.rows}">
+            <td class="font-sans-serif text-nowrap"><a th:href="@{/deposits/{id}(id=${r.deposit.account.id})}" th:text="${r.deposit.account.name}">Вклад</a></td>
+            <td class="text-end" th:each="v : ${r.months}" th:text="${v.signum() == 0} ? '' : ${@money.input(v)}">100,00</td>
+            <td class="text-end fw-semibold" th:text="${@money.input(r.received)}">1 200,00</td>
+            <td class="text-end text-body-secondary" th:text="${@money.input(r.expected)}">300,00</td>
+            <td class="text-end" th:text="${r.yield != null} ? ${@money.percent(r.yield)} : '—'">12,1 %</td>
+          </tr>
+        </tbody>
+        <tfoot class="font-monospace fw-semibold">
+          <tr>
+            <td class="font-sans-serif" th:text="#{deposit.total}">Итого</td>
+            <td class="text-end" th:each="v : ${report.monthTotals}" th:text="${v.signum() == 0} ? '' : ${@money.input(v)}">100,00</td>
+            <td class="text-end" th:text="${@money.input(report.received)}">1 200,00</td>
+            <td class="text-end" th:text="${@money.input(report.expected)}">300,00</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <p class="small text-body-secondary" th:text="#{deposit.reportHint}">Суммы в базовой валюте по курсу на день зачисления. Доходность — полученные проценты к среднему остатку за год.</p>
+  </th:block>
+</main>
+</body>
+</html>
