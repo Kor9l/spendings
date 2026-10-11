@@ -3,6 +3,7 @@ package com.spendings.report;
 import com.spendings.account.Accounts;
 import com.spendings.category.CategoryKind;
 import com.spendings.fx.BaseCurrency;
+import com.spendings.goal.Goals;
 import com.spendings.operation.Feed;
 import com.spendings.operation.OperationFeed;
 import com.spendings.report.ReportQueries.Totals;
@@ -21,19 +22,23 @@ class DashboardController {
 
   private static final int RECENT_DAYS = 3;
   private static final int TOP_CATEGORIES = 5;
+  private static final int TOP_GOALS = 3;
 
   private final BaseCurrency baseCurrency;
   private final Accounts accounts;
   private final OperationFeed operations;
   private final Reports reports;
   private final JdbcClient jdbc;
+  private final Goals goals;
 
   DashboardController(
       BaseCurrency baseCurrency,
       Accounts accounts,
       OperationFeed operations,
       Reports reports,
-      JdbcClient jdbc) {
+      JdbcClient jdbc,
+      Goals goals) {
+    this.goals = goals;
     this.baseCurrency = baseCurrency;
     this.accounts = accounts;
     this.operations = operations;
@@ -70,6 +75,8 @@ class DashboardController {
     model.addAttribute("netWorth", reports.netWorth(base));
     model.addAttribute(
         "balances", accounts.balances().stream().filter(b -> !b.account().archived()).toList());
+
+    model.addAttribute("goals", goals.active().stream().limit(TOP_GOALS).toList());
 
     Feed recent = operations.page(Feed.Filter.none(), null, RECENT_DAYS);
     model.addAttribute("feed", new Feed(recent.days(), null));

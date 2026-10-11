@@ -155,3 +155,37 @@ body:has(.op-form) .app-fab {
 .chart-wide {
   height: 22rem;
 }
+
+/* Взносы цели по месяцам */
+.goal-history {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 0.25rem;
+  align-items: end;
+  height: 7rem;
+}
+
+.goal-history-month {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  height: 100%;
+  font-size: 0.7rem;
+  color: var(--bs-secondary-color);
+}
+
+.goal-history-bar {
+  width: 100%;
+  min-height: 2px;
+  border-radius: 3px 3px 0 0;
+  background: var(--bs-success);
+}
+
+.goal-history-bar.negative {
+  background: var(--bs-danger);
+}
+
+.goal-card:hover {
+  border-color: var(--bs-primary);
+}

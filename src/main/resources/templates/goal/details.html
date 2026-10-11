@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head><title th:text="${goal.name} + ' · ' + #{app.name}">Цель</title></head>
+<body>
+<main class="container py-3 narrow-container">
+  <p class="small text-body-secondary mb-2">
+    <a th:href="@{/goals}" th:text="#{goal.title}">Цели</a>
+  </p>
+
+  <!-- карточка цели: используется и в списке -->
+  <div class="card mb-3" th:with="g=${goal}">
+    <div th:fragment="summary(g)" class="card-body vstack gap-2">
+      <div class="d-flex justify-content-between align-items-start gap-2">
+        <h2 class="h5 mb-0"><span th:text="${g.icon}">🎯</span> <span th:text="${g.name}">Новая машина</span></h2>
+        <span class="badge text-nowrap" th:classappend="${g.statusClass()}" th:text="#{${g.statusKey()}(${g.statusMonths()})}">отстаю</span>
+      </div>
+      <div class="d-flex justify-content-between align-items-baseline flex-wrap gap-1">
+        <span class="fs-5 font-monospace" th:text="${@money.format(g.current, g.currency)}">9 400,00 USD</span>
+        <span class="text-body-secondary font-monospace" th:if="${g.target != null}"
+              th:text="#{goal.of} + ' ' + ${@money.format(g.target, g.currency)} + ' · ' + ${@money.percent(g.percent)} + '%'">из 25 000,00 USD · 37,6%</span>
+      </div>
+      <div class="progress" role="img" style="height: 10px" th:attr="aria-label=${g.percent} + '%'">
+        <div class="progress-bar bg-success" th:style="'width:' + ${g.percent} + '%'"></div>
+      </div>
+      <div class="small text-body-secondary d-flex flex-wrap gap-3" th:if="${g.forecast != null and g.forecast.status().name() != 'ACHIEVED'}">
+        <span th:if="${g.targetDate != null}" th:text="#{goal.deadline} + ': ' + ${#temporals.format(g.targetDate, 'LLLL yyyy')}">срок: июнь 2028</span>
+        <span th:if="${g.forecast.requiredMonthly() != null}"
+              th:text="#{goal.required} + ' ' + ${@money.format(g.forecast.requiredMonthly(), g.currency)}">нужно 740,00 USD в месяц</span>
+        <span th:if="${g.forecast.eta() != null}" th:text="#{goal.eta} + ' ' + ${#temporals.format(g.forecast.eta(), 'LLLL yyyy')}">прогноз: ноябрь 2028</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert alert-info" th:if="${goal.target == null}" th:text="#{goal.noExpensesYet}">Нужна история расходов.</div>
+  <div class="alert alert-warning" th:if="${goal.missingRates}" th:text="#{goal.missingRates}">Нет курса.</div>
+
+  <form class="mb-3" method="post" th:if="${goal.canBeMarkedAchieved()}" th:action="@{/goals/{id}/achieve(id=${goal.id})}">
+    <button class="btn btn-success" type="submit" th:text="#{goal.markAchieved}">Отметить достигнутой</button>
+  </form>
+
+  <!-- прогноз -->
+  <section class="card mb-3" th:if="${goal.forecast != null and goal.active and goal.forecast.status().name() != 'ACHIEVED'}">
+    <div class="card-body">
+      <h2 class="h6 text-body-secondary text-uppercase small" th:text="#{goal.forecastTitle}">Прогноз</h2>
+      <dl class="row mb-2">
+        <dt class="col-7 fw-normal text-body-secondary" th:text="#{goal.remaining}">Осталось</dt>
+        <dd class="col-5 font-monospace text-end" th:text="${@money.format(goal.forecast.remaining(), goal.currency)}">15 600,00 USD</dd>
+        <dt class="col-7 fw-normal text-body-secondary" th:text="#{goal.pace}">Средний взнос в месяц</dt>
+        <dd class="col-5 font-monospace text-end" th:text="${@money.format(goal.pace, goal.currency)}">600,00 USD</dd>
+        <th:block th:if="${goal.annualRate.signum() > 0}">
+          <dt class="col-7 fw-normal text-body-secondary" th:text="#{goal.growth}">Деньги растут</dt>
+          <dd class="col-5 font-monospace text-end" th:text="${#numbers.formatDecimal(goal.annualRate, 1, 2, 'COMMA')} + '% ' + #{goal.perYear}">3,00% годовых</dd>
+        </th:block>
+        <th:block th:if="${goal.forecast.requiredMonthly() != null}">
+          <dt class="col-7 fw-normal text-body-secondary" th:text="#{goal.requiredLong(${#temporals.format(goal.targetDate, 'LLLL yyyy')})}">Нужно в месяц, чтобы успеть</dt>
+          <dd class="col-5 font-monospace text-end fw-semibold" th:text="${@money.format(goal.forecast.requiredMonthly(), goal.currency)}">740,00 USD</dd>
+        </th:block>
+        <dt class="col-7 fw-normal text-body-secondary" th:text="#{goal.etaLong}">При текущем темпе</dt>
+        <dd class="col-5 text-end" th:text="${goal.forecast.eta() != null} ? ${#temporals.format(goal.forecast.eta(), 'LLLL yyyy')} : #{goal.never}">ноябрь 2028</dd>
+      </dl>
+
+      <form class="border-top pt-2" th:hx-get="@{/goals/{id}/what-if(id=${goal.id})}" hx-target="#what-if" hx-trigger="input delay:300ms from:#monthly, submit">
+        <label class="form-label small" for="monthly" th:text="#{goal.whatIf}">Если откладывать в месяц</label>
+        <div class="input-group">
+          <input class="form-control" id="monthly" name="monthly" inputmode="decimal" autocomplete="off"
+                 th:value="${@money.input(goal.forecast.requiredMonthly() != null ? goal.forecast.requiredMonthly() : goal.pace)}">
+          <span class="input-group-text" th:text="${goal.currency}">USD</span>
+        </div>
+        <div id="what-if" class="small mt-2" th:fragment="what-if">
+          <span th:if="${monthly != null}"
+                th:text="${whatIfEta != null} ? #{goal.whatIfResult(${#temporals.format(whatIfEta, 'LLLL yyyy')})} : #{goal.never}">цель будет достигнута в ноябре 2028</span>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- откуда деньги -->
+  <section class="card mb-3" th:if="${goal.funding.name() == 'ACCOUNTS'}">
+    <div class="card-body">
+      <h2 class="h6 text-body-secondary text-uppercase small" th:text="#{goal.fundingAccounts}">Где лежат деньги</h2>
+      <ul class="list-unstyled mb-0 vstack gap-1">
+        <li class="d-flex justify-content-between gap-2" th:each="f : ${goal.accounts}">
+          <a class="text-body text-decoration-none" th:href="@{/accounts/{id}(id=${f.account.id})}"
+             th:text="${f.account.icon} + ' ' + ${f.account.name} + ${f.shareLabel()}">🏦 Вклад · 100%</a>
+          <span class="font-monospace" th:text="${@money.format(f.amount, goal.currency)}">9 400,00 USD</span>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="card mb-3" th:if="${goal.funding.name() == 'MANUAL'}">
+    <div class="card-body">
+      <h2 class="h6 text-body-secondary text-uppercase small" th:text="#{goal.reserve}">Резерв</h2>
+      <p class="small text-body-secondary" th:text="#{goal.reserveHint}">Отметки «отложил» — без отдельного счёта.</p>
+      <form class="row g-2 align-items-end mb-3" method="post" th:action="@{/goals/{id}/contributions(id=${goal.id})}" th:if="${goal.active}">
+        <div class="col-12 col-sm-3">
+          <select class="form-select" name="direction" th:attr="aria-label=#{goal.direction}">
+            <option value="SAVE" th:text="#{goal.save}">Отложил</option>
+            <option value="TAKE" th:text="#{goal.take}">Взял</option>
+          </select>
+        </div>
+        <div class="col-6 col-sm-3">
+          <div class="input-group">
+            <input class="form-control" name="amount" inputmode="decimal" required placeholder="0,00" th:attr="aria-label=#{operation.amount}">
+            <span class="input-group-text" th:text="${goal.currency}">USD</span>
+          </div>
+        </div>
+        <div class="col-6 col-sm-3">
+          <input class="form-control" type="date" name="date" th:value="${today}" required th:attr="aria-label=#{operation.date}">
+        </div>
+        <div class="col-12 col-sm-3">
+          <button class="btn btn-primary w-100" type="submit" th:text="#{common.save}">Сохранить</button>
+        </div>
+        <div class="col-12">
+          <input class="form-control form-control-sm" name="note" maxlength="200" th:placeholder="#{operation.note}">
+        </div>
+      </form>
+      <ul class="list-unstyled mb-0 vstack gap-1 small" th:unless="${contributions.empty}">
+        <li class="d-flex align-items-center gap-2" th:each="c : ${contributions}">
+          <span class="text-body-secondary" th:text="${#temporals.format(c.date, 'dd.MM.yyyy')}">01.10.2026</span>
+          <span class="flex-grow-1 text-truncate" th:text="${c.note}"></span>
+          <span class="font-monospace" th:classappend="${c.amount.signum() > 0} ? 'amount-positive' : 'amount-negative'"
+                th:text="${@money.signed(c.amount, goal.currency)}">+300,00 USD</span>
+          <form method="post" th:action="@{/goals/{id}/contributions/{c}/delete(id=${goal.id},c=${c.id})}">
+            <button class="btn btn-sm btn-link py-0 text-body-secondary" type="submit" th:attr="aria-label=#{common.delete}">×</button>
+          </form>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- взносы по месяцам -->
+  <section class="card mb-3">
+    <div class="card-body">
+      <h2 class="h6 text-body-secondary text-uppercase small" th:text="#{goal.history}">Взносы по месяцам</h2>
+      <div class="goal-history">
+        <div class="goal-history-month" th:each="h : ${goal.history}"
+             th:title="${#temporals.format(h.key, 'LLLL yyyy')} + ': ' + ${@money.signed(h.value, goal.currency)}">
+          <div class="goal-history-bar" th:classappend="${h.value.signum() < 0} ? 'negative'"
+               th:style="'height:' + ${goal.barHeight(h.value)} + '%'"></div>
+          <span th:text="${#temporals.format(h.key, 'LLL')}">окт</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="d-flex flex-wrap gap-2 pt-2 border-top">
+    <a class="btn btn-outline-secondary" th:href="@{/goals/{id}/edit(id=${goal.id})}" th:text="#{common.edit}">Изменить</a>
+    <form method="post" th:if="${goal.active}" th:action="@{/goals/{id}/archive(id=${goal.id})}">
+      <button class="btn btn-outline-secondary" type="submit" th:text="#{common.archive}">В архив</button>
+    </form>
+    <form method="post" th:unless="${goal.active}" th:action="@{/goals/{id}/restore(id=${goal.id})}">
+      <button class="btn btn-outline-secondary" type="submit" th:text="#{goal.restore}">Снова копить</button>
+    </form>
+    <form method="post" th:action="@{/goals/{id}/delete(id=${goal.id})}" x-data="{ confirm: false }">
+      <button type="button" class="btn btn-outline-danger" x-show="!confirm" x-on:click="confirm = true" th:text="#{common.delete}">Удалить</button>
+      <span x-show="confirm" x-cloak class="d-inline-flex align-items-center gap-2">
+        <span th:text="#{goal.deleteConfirm}">Удалить цель? Счета и операции останутся.</span>
+        <button type="submit" class="btn btn-danger btn-sm" th:text="#{common.yes}">Да, удалить</button>
+        <button type="button" class="btn btn-link btn-sm" x-on:click="confirm = false" th:text="#{common.cancel}">Отмена</button>
+      </span>
+    </form>
+  </div>
+</main>
+</body>
+</html>
