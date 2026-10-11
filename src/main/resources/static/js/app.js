@@ -8,8 +8,9 @@ document.addEventListener('htmx:configRequest', (event) => {
 });
 
 // Уведомления: сервер шлёт HX-Trigger: {"toast": {"level": "success", "message": "…"}}
-document.addEventListener('toast', (event) => {
-  const { level = 'success', message = '' } = event.detail ?? {};
+document.addEventListener('toast', (event) => showToast(event.detail ?? {}));
+
+function showToast({ level = 'success', message = '' }) {
   const container = document.getElementById('toasts');
   if (!container || !message) return;
 
@@ -33,4 +34,47 @@ document.addEventListener('toast', (event) => {
   container.append(toast);
   toast.addEventListener('hidden.bs.toast', () => toast.remove());
   bootstrap.Toast.getOrCreateInstance(toast).show();
+}
+
+// Уведомление после перенаправления (flash-атрибут «toast»).
+function showFlashToast() {
+  const flash = document.getElementById('flash-toast');
+  if (!flash) return;
+  showToast({ level: flash.dataset.level, message: flash.dataset.message });
+  flash.remove();
+}
+
+// Перетаскивание для сортировки: <ul data-sortable="/accounts/reorder"> с элементами data-id.
+function initSortables(root) {
+  root.querySelectorAll('[data-sortable]').forEach((list) => {
+    if (list.sortable) return;
+    list.sortable = Sortable.create(list, {
+      // у вложенных списков свой «хвостик», чтобы родительский список не перехватывал перетаскивание
+      handle: list.dataset.handle || '[data-drag-handle]',
+      animation: 150,
+      onEnd: () => {
+        const ids = [...list.children].map((el) => el.dataset.id).filter(Boolean);
+        // id=…&id=…: повторяющиеся параметры, поэтому fetch, а не htmx.ajax
+        const body = new URLSearchParams(ids.map((id) => ['id', id]));
+        fetch(list.dataset.sortable, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            [document.querySelector('meta[name="_csrf_header"]').content]:
+              document.querySelector('meta[name="_csrf"]').content,
+          },
+          body,
+        });
+      },
+    });
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  showFlashToast();
+  initSortables(document);
+});
+document.addEventListener('htmx:afterSettle', (event) => {
+  showFlashToast();
+  initSortables(event.target);
 });

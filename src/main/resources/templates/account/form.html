@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head><title th:text="(${accountId} == null ? #{account.new} : #{account.edit}) + ' · ' + #{app.name}">Счёт</title></head>
+<body>
+<main class="container py-3 narrow-container" th:attr="data-type=${form.type}" x-data="{ type: $el.dataset.type }">
+  <h1 class="h4 mb-3" th:text="${accountId} == null ? #{account.new} : #{account.edit}">Новый счёт</h1>
+
+  <form method="post" th:object="${form}" novalidate class="vstack gap-3"
+        th:action="${accountId} == null ? @{/accounts} : @{/accounts/{id}(id=${accountId})}">
+    <div class="alert alert-danger mb-0" th:if="${#fields.hasGlobalErrors()}">
+      <div th:each="error : ${#fields.globalErrors()}" th:text="${error}">Ошибка</div>
+    </div>
+    <input type="hidden" th:field="*{version}">
+
+    <div>
+      <label class="form-label" for="name" th:text="#{account.name}">Название</label>
+      <input class="form-control" th:field="*{name}" th:errorclass="is-invalid" maxlength="100" required autofocus>
+      <div class="invalid-feedback" th:errors="*{name}"></div>
+    </div>
+
+    <div class="row g-2">
+      <div class="col-sm-6">
+        <label class="form-label" for="type" th:text="#{account.type}">Тип</label>
+        <select class="form-select" th:field="*{type}" x-model="type">
+          <option th:each="t : ${types}" th:value="${t}" th:text="${t.icon()} + ' ' + #{${t.labelKey()}}">Карта</option>
+        </select>
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label" for="currency" th:text="#{account.currency}">Валюта</label>
+        <select class="form-select" th:field="*{currency}">
+          <option th:each="c : ${currencies}" th:value="${c.code}" th:text="${c.code} + ' — ' + ${c.name}">BYN</option>
+        </select>
+        <div class="form-text" th:text="#{account.currencyHint}"></div>
+      </div>
+    </div>
+
+    <div class="row g-2">
+      <div class="col-sm-6">
+        <label class="form-label" for="openingBalance" th:text="#{account.openingBalance}">Начальный остаток</label>
+        <input class="form-control" th:field="*{openingBalance}" th:errorclass="is-invalid" inputmode="decimal" placeholder="0">
+        <div class="invalid-feedback" th:errors="*{openingBalance}"></div>
+        <div class="form-text" th:text="#{account.openingBalanceHint}"></div>
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label" for="openedOn" th:text="#{account.openedOn}">Дата начала учёта</label>
+        <input class="form-control" type="date" th:field="*{openedOn}" th:errorclass="is-invalid">
+        <div class="invalid-feedback" th:errors="*{openedOn}"></div>
+      </div>
+    </div>
+
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" th:field="*{inNetWorth}">
+      <label class="form-check-label" th:for="${#ids.prev('inNetWorth')}" th:text="#{account.inNetWorth}">Учитывать в капитале</label>
+    </div>
+
+    <fieldset class="border rounded p-3 vstack gap-3" x-show="type === 'DEPOSIT'" x-cloak>
+      <legend class="h6 float-none w-auto px-2 mb-0" th:text="#{account.deposit}">Условия вклада</legend>
+      <div class="row g-2">
+        <div class="col-sm-6">
+          <label class="form-label" for="bank" th:text="#{account.bank}">Банк</label>
+          <input class="form-control" th:field="*{bank}" maxlength="100">
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label" for="annualRate" th:text="#{account.annualRate}">Ставка</label>
+          <input class="form-control" th:field="*{annualRate}" th:errorclass="is-invalid" inputmode="decimal" placeholder="12,5">
+          <div class="invalid-feedback" th:errors="*{annualRate}"></div>
+        </div>
+      </div>
+      <div class="row g-2">
+        <div class="col-sm-6">
+          <label class="form-label" for="capitalization" th:text="#{account.capitalization}">Капитализация</label>
+          <select class="form-select" th:field="*{capitalization}">
+            <option th:each="c : ${form.capitalizations}" th:value="${c}" th:text="#{'account.capitalization.' + ${c}}">Ежемесячно</option>
+          </select>
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label" for="taxRate" th:text="#{account.taxRate}">Налог</label>
+          <input class="form-control" th:field="*{taxRate}" th:errorclass="is-invalid" inputmode="decimal" placeholder="0">
+          <div class="invalid-feedback" th:errors="*{taxRate}"></div>
+        </div>
+      </div>
+      <div class="row g-2">
+        <div class="col-sm-6">
+          <label class="form-label" for="depositOpenedOn" th:text="#{account.depositOpenedOn}">Дата открытия</label>
+          <input class="form-control" type="date" th:field="*{depositOpenedOn}">
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label" for="maturesOn" th:text="#{account.maturesOn}">Дата окончания</label>
+          <input class="form-control" type="date" th:field="*{maturesOn}">
+        </div>
+      </div>
+      <div class="d-flex gap-4">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" th:field="*{revocable}">
+          <label class="form-check-label" th:for="${#ids.prev('revocable')}" th:text="#{account.revocable}">Отзывной</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" th:field="*{autoRenew}">
+          <label class="form-check-label" th:for="${#ids.prev('autoRenew')}" th:text="#{account.autoRenew}">Автопролонгация</label>
+        </div>
+      </div>
+    </fieldset>
+
+    <div class="d-flex gap-2">
+      <button class="btn btn-primary" type="submit" th:text="#{common.save}">Сохранить</button>
+      <a class="btn btn-link" th:href="@{/accounts}" th:text="#{common.cancel}">Отмена</a>
+    </div>
+  </form>
+
+  <div class="mt-4 pt-3 border-top d-flex flex-wrap gap-2" th:if="${accountId != null}">
+    <form method="post" th:action="@{/accounts/{id}/archive(id=${accountId})}">
+      <button class="btn btn-outline-secondary" type="submit" th:text="#{common.archive}">В архив</button>
+    </form>
+    <form method="post" th:action="@{/accounts/{id}/delete(id=${accountId})}" x-data="{ confirm: false }">
+      <button type="button" class="btn btn-outline-danger" x-show="!confirm" x-on:click="confirm = true" th:text="#{common.delete}">Удалить</button>
+      <span x-show="confirm" x-cloak class="d-inline-flex align-items-center gap-2">
+        <span th:text="#{common.deleteConfirm}">Точно удалить?</span>
+        <button type="submit" class="btn btn-danger btn-sm" th:text="#{common.yes}">Да, удалить</button>
+        <button type="button" class="btn btn-link btn-sm" x-on:click="confirm = false" th:text="#{common.cancel}">Отмена</button>
+      </span>
+    </form>
+  </div>
+</main>
+</body>
+</html>

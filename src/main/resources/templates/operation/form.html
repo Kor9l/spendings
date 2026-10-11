@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head><title th:text="(${operationId} == null ? #{operation.new} : #{operation.edit}) + ' · ' + #{app.name}">Операция</title></head>
+<body>
+<main class="container py-3 op-form" th:attr="data-state=${state}" x-data="operationForm($el.dataset.state)">
+  <h1 class="h4 mb-3" th:text="${operationId} == null ? #{operation.new} : #{operation.edit}">Новая операция</h1>
+
+  <div class="alert alert-info" th:if="${accounts.empty}">
+    <span th:text="#{operation.noAccounts}">Сначала создайте счёт.</span>
+    <a class="alert-link" th:href="@{/accounts/new}" th:text="#{operation.createAccount}">Создать счёт</a>
+  </div>
+
+  <form th:unless="${accounts.empty}" method="post" th:object="${form}" novalidate class="vstack gap-3"
+        th:action="${operationId} == null ? @{/operations} : @{/operations/{id}(id=${operationId})}">
+    <div class="alert alert-danger mb-0" th:if="${#fields.hasGlobalErrors()}">
+      <div th:each="error : ${#fields.globalErrors()}" th:text="${error}">Ошибка</div>
+    </div>
+
+    <input type="hidden" name="type" x-bind:value="type" th:value="*{type}">
+    <input type="hidden" th:field="*{version}">
+
+    <!-- тип -->
+    <div class="btn-group w-100" role="group" th:unless="*{type.name() == 'ADJUSTMENT'}">
+      <th:block th:each="t : ${ {'EXPENSE', 'INCOME', 'TRANSFER'} }">
+        <button type="button" class="btn btn-outline-primary" th:attr="data-type=${t}"
+                x-on:click="setType($el.dataset.type)" x-bind:class="{ active: type === $el.dataset.type }"
+                th:text="#{'operation.type.' + ${t}}">Расход</button>
+      </th:block>
+    </div>
+
+    <!-- сумма -->
+    <div x-show="!split || !categorized">
+      <label class="form-label" for="amount"
+             th:text="*{type.name() == 'ADJUSTMENT'} ? #{operation.type.ADJUSTMENT} : #{operation.amount}">Сумма</label>
+      <div class="input-group input-group-lg">
+        <input class="form-control amount-input" id="amount" name="amount" inputmode="decimal" autocomplete="off"
+               th:value="${@money.input(form.amount)}" th:classappend="${#fields.hasErrors('amount')} ? 'is-invalid'" placeholder="0,00"
+               th:attrappend="autofocus=${operationId == null ? 'autofocus' : null}">
+        <span class="input-group-text" x-text="currencyOf(accountId)"></span>
+      </div>
+      <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('amount')}" th:errors="*{amount}"></div>
+    </div>
+
+    <!-- счёт -->
+    <div class="row g-2">
+      <div class="col">
+        <label class="form-label" for="accountId"
+               x-text="type === 'TRANSFER' ? 'Откуда' : 'Счёт'" th:text="#{operation.account}">Счёт</label>
+        <select class="form-select" id="accountId" name="accountId" x-model="accountId">
+          <option th:each="a : ${accounts}" th:value="${a.id}" th:selected="${a.id == form.accountId}"
+                  th:text="${a.icon} + ' ' + ${a.name} + ' · ' + ${a.currency}">Карта · BYN</option>
+        </select>
+        <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('accountId')}" th:errors="*{accountId}"></div>
+      </div>
+      <div class="col" x-show="type === 'TRANSFER'" x-cloak>
+        <label class="form-label" for="toAccountId" th:text="#{operation.toAccount}">Куда</label>
+        <select class="form-select" id="toAccountId" name="toAccountId" x-model="toAccountId">
+          <option value="">—</option>
+          <option th:each="a : ${accounts}" th:value="${a.id}" th:selected="${a.id == form.toAccountId}"
+                  th:text="${a.icon} + ' ' + ${a.name} + ' · ' + ${a.currency}">Машина · USD</option>
+        </select>
+        <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('toAccountId')}" th:errors="*{toAccountId}"></div>
+      </div>
+    </div>
+
+    <div x-show="crossCurrency" x-cloak>
+      <label class="form-label" for="toAmount" th:text="#{operation.toAmount}">Поступит</label>
+      <div class="input-group">
+        <input class="form-control" id="toAmount" name="toAmount" inputmode="decimal" autocomplete="off"
+               th:value="${@money.input(form.toAmount)}">
+        <span class="input-group-text" x-text="currencyOf(toAccountId)"></span>
+      </div>
+      <div class="form-text" th:text="#{operation.toAmountHint}"></div>
+    </div>
+
+    <!-- категория: плитки и подкатегории -->
+    <div x-show="categorized && !split">
+      <input type="hidden" name="categoryId" x-bind:value="cat" th:value="*{categoryId}">
+      <div class="form-label mb-2" th:text="#{operation.category}">Категория</div>
+      <div class="invalid-feedback d-block mb-2" th:if="${#fields.hasErrors('categoryId')}" th:errors="*{categoryId}"></div>
+
+      <th:block th:each="group : ${ { {'EXPENSE', expenseTiles}, {'INCOME', incomeTiles} } }">
+        <div class="cat-tiles" th:attr="data-kind=${group[0]}" x-show="kind === $el.dataset.kind">
+          <button type="button" class="cat-tile" th:each="node : ${group[1]}"
+                  th:attr="data-top=${node.category.id},data-cat=${node.category.id},data-top-of=${node.category.id}"
+                  x-on:click="pickTop($el.dataset.top)" x-bind:class="{ active: top === $el.dataset.top }">
+            <span class="cat-icon" th:style="'--cat-color:' + ${node.category.color}" th:text="${node.category.icon}">🍽️</span>
+            <span class="cat-name" th:text="${node.category.name}">Еда</span>
+          </button>
+        </div>
+        <th:block th:each="node : ${group[1]}">
+          <div class="cat-subs" th:unless="${node.children.empty}" th:attr="data-top=${node.category.id}"
+               x-show="top === $el.dataset.top" x-cloak>
+            <button type="button" class="btn btn-sm cat-chip" th:each="sub : ${node.children}"
+                    th:attr="data-cat=${sub.id},data-top=${node.category.id}"
+                    x-on:click="pickSub($el.dataset.cat)" x-bind:class="{ active: cat === $el.dataset.cat }"
+                    th:text="${sub.name}">Кафе</button>
+          </div>
+        </th:block>
+      </th:block>
+    </div>
+
+    <!-- разбивка чека -->
+    <div x-show="categorized" class="form-check">
+      <input class="form-check-input" type="checkbox" th:field="*{split}" x-model="split">
+      <label class="form-check-label" th:for="${#ids.prev('split')}" th:text="#{operation.split}">Разбить</label>
+    </div>
+
+    <div x-show="categorized && split" x-cloak class="vstack gap-2">
+      <template x-for="(row, i) in splits" x-bind:key="i">
+        <div class="row g-2 align-items-center">
+          <div class="col-12 col-sm-5">
+            <select class="form-select" x-bind:name="`splits[${i}].categoryId`" x-model="row.categoryId">
+              <option value="">—</option>
+              <th:block th:each="c : ${categoryOptions.get(T(com.spendings.category.CategoryKind).EXPENSE)}">
+                <option th:value="${c.id}" th:text="${c.parentId == null} ? ${c.icon} + ' ' + ${c.name} : '   ' + ${c.name}"
+                        x-show="kind === 'EXPENSE'">Еда</option>
+              </th:block>
+              <th:block th:each="c : ${categoryOptions.get(T(com.spendings.category.CategoryKind).INCOME)}">
+                <option th:value="${c.id}" th:text="${c.parentId == null} ? ${c.icon} + ' ' + ${c.name} : '   ' + ${c.name}"
+                        x-show="kind === 'INCOME'">Зарплата</option>
+              </th:block>
+            </select>
+          </div>
+          <div class="col-5 col-sm-3">
+            <input class="form-control" inputmode="decimal" placeholder="0,00" autocomplete="off"
+                   x-bind:name="`splits[${i}].amount`" x-model="row.amount">
+          </div>
+          <div class="col">
+            <input class="form-control" th:placeholder="#{operation.note}"
+                   x-bind:name="`splits[${i}].note`" x-model="row.note">
+          </div>
+          <div class="col-auto">
+            <button type="button" class="btn btn-outline-secondary" x-on:click="removeRow(i)"
+                    th:attr="aria-label=#{operation.removeRow}">×</button>
+          </div>
+        </div>
+      </template>
+      <div class="d-flex justify-content-between align-items-center">
+        <button type="button" class="btn btn-sm btn-outline-primary" x-on:click="addRow()" th:text="'+ ' + #{operation.addRow}">+ Ещё строка</button>
+        <span class="font-monospace"><span th:text="#{operation.splitTotal}">Итого</span>:
+          <span x-text="splitTotal"></span> <span x-text="currencyOf(accountId)"></span></span>
+      </div>
+    </div>
+
+    <!-- покупка в другой валюте -->
+    <div x-show="categorized && !split">
+      <button type="button" class="btn btn-link btn-sm p-0" x-on:click="showOriginal = !showOriginal"
+              th:text="#{operation.original}">Покупка в другой валюте</button>
+      <div class="row g-2 mt-1" x-show="showOriginal" x-cloak>
+        <div class="col">
+          <input class="form-control" name="originalAmount" inputmode="decimal" autocomplete="off"
+                 th:placeholder="#{operation.originalAmount}" th:value="${@money.input(form.originalAmount)}">
+        </div>
+        <div class="col-4">
+          <select class="form-select" name="originalCurrency" th:attr="aria-label=#{operation.originalCurrency}">
+            <option th:each="c : ${currencies}" th:value="${c.code}" th:text="${c.code}"
+                    th:selected="${c.code == form.originalCurrency}">USD</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- дата, получатель, заметка -->
+    <div class="row g-2">
+      <div class="col-6 col-sm-4">
+        <label class="form-label" for="date" th:text="#{operation.date}">Дата</label>
+        <input class="form-control" type="date" th:field="*{date}" th:errorclass="is-invalid">
+      </div>
+      <div class="col" x-show="categorized">
+        <label class="form-label" for="payee" th:text="#{operation.payee}">Получатель</label>
+        <input class="form-control" id="payee" name="payee" list="payee-options" autocomplete="off"
+               th:value="*{payee}" maxlength="200"
+               hx-get="/operations/payees" hx-trigger="input changed delay:250ms" hx-target="#payee-options"
+               hx-swap="outerHTML" hx-sync="this:replace"
+               x-on:change="suggestCategory($event.target.value)">
+        <datalist id="payee-options" th:fragment="payee-options">
+          <option th:each="p : ${payees}" th:value="${p}"></option>
+        </datalist>
+      </div>
+    </div>
+    <div>
+      <label class="form-label" for="note" th:text="#{operation.note}">Заметка</label>
+      <input class="form-control" th:field="*{note}" maxlength="200">
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 pt-1">
+      <button class="btn btn-primary btn-lg flex-grow-1 flex-sm-grow-0" type="submit" th:text="#{common.save}">Сохранить</button>
+      <button class="btn btn-outline-primary btn-lg" type="submit" name="more" value="1" th:if="${operationId == null}"
+              th:text="#{operation.saveMore}">Сохранить и ещё</button>
+      <a class="btn btn-link btn-lg" th:href="@{/operations}" th:text="#{common.cancel}">Отмена</a>
+    </div>
+  </form>
+
+  <form th:if="${operationId != null}" class="mt-4 pt-3 border-top" method="post"
+        th:action="@{/operations/{id}/delete(id=${operationId})}" x-data="{ confirm: false }">
+    <button type="button" class="btn btn-outline-danger" x-show="!confirm" x-on:click="confirm = true"
+            th:text="#{common.delete}">Удалить</button>
+    <span x-show="confirm" x-cloak class="d-inline-flex align-items-center gap-2">
+      <span th:text="#{common.deleteConfirm}">Точно удалить?</span>
+      <button type="submit" class="btn btn-danger btn-sm" th:text="#{common.yes}">Да, удалить</button>
+      <button type="button" class="btn btn-link btn-sm" x-on:click="confirm = false" th:text="#{common.cancel}">Отмена</button>
+    </span>
+  </form>
+</main>
+</body>
+</html>

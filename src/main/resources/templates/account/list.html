@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head><title th:text="#{account.list.title} + ' · ' + #{app.name}">Счета</title></head>
+<body>
+<main class="container py-3">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h4 mb-0" th:text="#{account.list.title}">Счета</h1>
+    <a class="btn btn-primary btn-sm" th:href="@{/accounts/new}" th:text="'+ ' + #{account.new}">+ Новый счёт</a>
+  </div>
+
+  <p class="text-body-secondary py-4 text-center" th:if="${active.empty and archived.empty}" th:text="#{account.list.empty}">Счетов пока нет.</p>
+
+  <ul class="list-group mb-2" th:unless="${active.empty}" data-sortable="/accounts/reorder" data-handle="[data-drag-handle]">
+    <li class="list-group-item d-flex align-items-center gap-3" th:each="b : ${active}" th:attr="data-id=${b.account.id}">
+      <span class="drag-handle text-body-secondary" data-drag-handle aria-hidden="true">⋮⋮</span>
+      <span class="fs-4" th:text="${b.account.icon}">💳</span>
+      <a class="flex-grow-1 min-w-0 text-decoration-none text-body" th:href="@{/accounts/{id}(id=${b.account.id})}">
+        <span class="d-block text-truncate fw-semibold" th:text="${b.account.name}">Карта</span>
+        <span class="d-block small text-body-secondary" th:text="#{${b.account.type.labelKey()}} + ' · ' + ${b.account.currency}">Карта · BYN</span>
+      </a>
+      <span class="font-monospace text-end" th:classappend="${b.balance.signum() < 0} ? 'amount-negative'"
+            th:text="${@money.format(b.balance, b.account.currency)}">1 200,00 BYN</span>
+      <a class="btn btn-sm btn-link" th:href="@{/accounts/{id}/edit(id=${b.account.id})}" th:text="#{common.edit}">Изменить</a>
+    </li>
+  </ul>
+  <p class="small text-body-secondary" th:if="${active.size() > 1}" th:text="#{account.list.dragHint}">Порядок меняется перетаскиванием.</p>
+
+  <section class="card mb-4" th:unless="${totals.empty}">
+    <div class="card-body">
+      <h2 class="h6 text-body-secondary text-uppercase small" th:text="#{account.list.totals}">Итого по валютам</h2>
+      <div class="d-flex flex-wrap gap-4">
+        <span class="fs-5 font-monospace" th:each="t : ${totals}" th:text="${@money.format(t.value, t.key)}">1 200,00 BYN</span>
+      </div>
+    </div>
+  </section>
+
+  <section th:unless="${archived.empty}">
+    <h2 class="h6 text-body-secondary" th:text="#{account.list.archived}">Архив</h2>
+    <ul class="list-group">
+      <li class="list-group-item d-flex align-items-center gap-3 text-body-secondary" th:each="b : ${archived}">
+        <span th:text="${b.account.icon}">💳</span>
+        <a class="flex-grow-1 text-reset" th:href="@{/accounts/{id}(id=${b.account.id})}" th:text="${b.account.name}">Старая карта</a>
+        <span class="font-monospace" th:text="${@money.format(b.balance, b.account.currency)}">0,00 BYN</span>
+        <form method="post" th:action="@{/accounts/{id}/restore(id=${b.account.id})}">
+          <button class="btn btn-sm btn-link" type="submit" th:text="#{common.restore}">Вернуть</button>
+        </form>
+      </li>
+    </ul>
+  </section>
+</main>
+</body>
+</html>
