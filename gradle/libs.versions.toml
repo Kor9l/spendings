@@ -1,6 +1,6 @@
 [versions]
-spring-boot = "4.1.1"
-spring-modulith = "2.1.1"
+spring-boot = "4.1.2"
+spring-modulith = "2.1.2"
 postgresql = "42.7.14"      # выше версии из Boot 4.1.1 (42.7.13): закрыты две CVE
 htmx = "2.0.11"
 alpinejs = "3.17.4"
