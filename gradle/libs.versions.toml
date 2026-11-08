@@ -9,7 +9,7 @@ webjars-locator = "1.1.5"
 sortablejs = "1.15.7"
 echarts = "6.1.0"
 fastexcel = "0.20.2"
-spotless = "8.10.4"
+spotless = "8.11.0"
 
 [libraries]
 spring-modulith-bom = { module = "org.springframework.modulith:spring-modulith-bom", version.ref = "spring-modulith" }
